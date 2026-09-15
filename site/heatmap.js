@@ -218,9 +218,13 @@
       c.addEventListener("pointerup", end);
       c.addEventListener("pointercancel", end);
       c.addEventListener("wheel", function (ev) {
-        if (!ev.ctrlKey) return; // trackpad pinch only; plain wheel keeps scrolling the page
+        // Mouse wheel and trackpad pinch both zoom the brain; the page does not scroll
+        // while the pointer is over it. Larger deltas (a wheel notch) zoom more than a
+        // small pinch step, capped so one event never jumps too far.
         ev.preventDefault();
-        self.zoom(ev.deltaY > 0 ? 1.08 : 1 / 1.08);
+        var d = ev.deltaMode === 1 ? ev.deltaY * 33 : ev.deltaMode === 2 ? ev.deltaY * 300 : ev.deltaY;
+        var k = Math.exp(Math.max(-250, Math.min(250, d)) * 0.0016);
+        self.zoom(k);
       }, { passive: false });
     },
 
