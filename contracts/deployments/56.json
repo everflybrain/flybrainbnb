@@ -21,5 +21,8 @@
     "optimizerRuns": 200,
     "evmVersion": "shanghai"
   },
-  "deployedAt": "2026-09-15T08:04:11.786Z"
+  "deployedAt": "2026-09-15T08:04:11.786Z",
+  "token": "0xc1a7aa0cb9682ab7b8f10d7b29ff7d3e1e057777",
+  "pricePerNeuron": "1000000000000000000000",
+  "setTokenTx": "0xeccf03aa770859cc8ebf5c8232ec256322eab027b615bb15eb3091f1f1b95a69"
 }
