@@ -183,7 +183,7 @@
     });
     es.addEventListener("claim", function () {
       loadOwners(true);
-      if (window.Burn) Burn.refresh().catch(function () {});
+      if (window.Burn) Burn.refresh().then(syncCA).catch(function () {});
     });
     es.onerror = function () {
       if (Date.now() - S.lastFrameAt > 30000) setOffline();
@@ -443,6 +443,36 @@
   }
 
   // ---------------- boot ----------------
+  // Copy CA button in the header: shows the token address from the registry once the coin is
+  // live, otherwise stays disabled as "CA soon". The address is read from the chain, never typed in.
+  function syncCA() {
+    var b = $("caBtn");
+    if (!b || !window.Burn) return;
+    var st = Burn.state();
+    var tok = st && st.live && st.token && Burn.validAddress(st.token) ? st.token : "";
+    if (tok) {
+      b.disabled = false; b.dataset.ca = tok; b.title = "Copy " + tok;
+      if (!b.classList.contains("done")) b.textContent = "Copy CA";
+    } else {
+      b.disabled = true; delete b.dataset.ca; b.title = "The coin isn't live yet"; b.textContent = "CA soon";
+    }
+  }
+  async function copyCA() {
+    var b = this, ca = b.dataset.ca;
+    if (!ca) return;
+    var ok = false;
+    try { await navigator.clipboard.writeText(ca); ok = true; } catch (e) {
+      try {
+        var ta = document.createElement("textarea");
+        ta.value = ca; ta.setAttribute("readonly", ""); ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select(); ok = document.execCommand("copy"); ta.remove();
+      } catch (e2) { ok = false; }
+    }
+    b.textContent = ok ? "Copied" : "Copy failed";
+    b.classList.add("done");
+    setTimeout(function () { b.classList.remove("done"); b.textContent = "Copy CA"; }, 1600);
+  }
+
   function boot() {
     $("zoomIn").onclick = function () { Heatmap.zoom(1 / 1.2); };
     $("zoomOut").onclick = function () { Heatmap.zoom(1.2); };
@@ -487,8 +517,10 @@
     burnReady.then(function () {
       renderProof();
       loadOwners(true);
+      syncCA();
       if (Burn.state().deployed) Burn.readExtras().then(function (x) { S.extras = x; renderProof(); }).catch(function () {});
     });
+    $("caBtn").addEventListener("click", copyCA);
     document.addEventListener("fly:claimed", function () { loadOwners(true); });
   }
 
