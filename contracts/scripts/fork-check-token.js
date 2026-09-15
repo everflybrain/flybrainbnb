@@ -71,7 +71,7 @@ async function main() {
   const deadBefore = await tok.balanceOf(dead);
   const holderBefore = await tok.balanceOf(holder);
   const claims = [
-    [count, "testbnb owner", "first claim on the fork"],
+    [count, "fork check", "first claim on the fork"],
     [1, "Mücke 🧠 蝇 name of 31 byte", "é € ‮ emoji 🪰 and a note that is fairly long, up to the 140 byte cap...."],
   ];
   for (const [n, nm, note] of claims) {
