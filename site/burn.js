@@ -1,4 +1,5 @@
-// Registry reads (JSON-RPC) and the burn flow (injected wallet only).
+// Registry reads (JSON-RPC) and the burn flow (MetaMask only: other injected wallets such as
+// Phantom are ignored, found through EIP-6963 announcements first, then window.ethereum).
 (function () {
   "use strict";
   var C = window.FLY_CONFIG || {};
@@ -118,7 +119,7 @@
     if (R.live && okCount) $("cost").textContent = fmtUnits(BigInt(n) * R.price, R.decimals) + " " + R.symbol;
     else $("cost").textContent = "-";
     var ok = R.live && okCount && okName && okNote;
-    if (!account) { btn.textContent = "Connect wallet"; btn.disabled = busy || !R.live; }
+    if (!account) { btn.textContent = "Connect MetaMask"; btn.disabled = busy || !R.live; }
     else { btn.textContent = ok ? "Burn " + $("cost").textContent : "Burn"; btn.disabled = busy || !ok; }
     return ok;
   }
@@ -172,9 +173,37 @@
     if (cur !== want) throw new Error("Please switch your wallet to BNB Smart Chain.");
   }
 
-  async function connect() {
+  // MetaMask only. EIP-6963 lets several wallets announce themselves without fighting over
+  // window.ethereum; Phantom in particular injects an EVM provider there and would otherwise
+  // take the connect. Fallbacks: window.ethereum.providers, then a window.ethereum that is
+  // MetaMask and not Phantom.
+  var announced = [];
+  if (window.addEventListener) {
+    window.addEventListener("eip6963:announceProvider", function (ev) {
+      var d = ev && ev.detail;
+      if (d && d.info && d.provider && !announced.some(function (x) { return x.info.uuid === d.info.uuid; })) announced.push(d);
+    });
+    try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) { /* ignore */ }
+  }
+  function isMM(p) { return !!(p && p.isMetaMask && !p.isPhantom && !p.isBraveWallet && !p.isCoinbaseWallet && !p.isRabby); }
+  var mmProvider = null;
+  async function metamaskProvider() {
+    if (mmProvider) return mmProvider;
+    try { window.dispatchEvent(new Event("eip6963:requestProvider")); } catch (e) { /* ignore */ }
+    await new Promise(function (r) { setTimeout(r, 150); });
+    var hit = announced.find(function (d) { return d.info.rdns === "io.metamask"; }) ||
+              announced.find(function (d) { return /metamask/i.test(d.info.name || "") && isMM(d.provider); });
+    var p = hit ? hit.provider : null;
     var eth = window.ethereum;
-    if (!eth) throw new Error("No browser wallet found. Open this page in a wallet's browser or install a wallet extension.");
+    if (!p && eth && Array.isArray(eth.providers)) p = eth.providers.find(isMM) || null;
+    if (!p && isMM(eth)) p = eth;
+    if (!p) throw new Error("MetaMask not found. Install the MetaMask extension, or open this page in the MetaMask app's browser.");
+    mmProvider = p;
+    return p;
+  }
+
+  async function connect() {
+    var eth = await metamaskProvider();
     var accts = await eth.request({ method: "eth_requestAccounts" });
     if (!accts || !accts.length) throw new Error("No account was shared.");
     await ensureChain(eth);
@@ -190,7 +219,7 @@
   function short(a) { return a.slice(0, 6) + "…" + a.slice(-4); }
 
   async function burn() {
-    var eth = window.ethereum;
+    var eth = await metamaskProvider();
     var count = Number(countEl.value), name = nameEl.value, note = noteEl.value;
     var shown = R.price;
     await readRegistry();
