@@ -26,7 +26,7 @@ async function main() {
     const cost = price * BigInt(p.count);
     await (await token.mint(p.who.address, cost)).wait();
     await (await token.connect(p.who).approve(dep.address, cost)).wait();
-    const tx = await reg.connect(p.who).claim(p.count, p.name, p.note);
+    const tx = await reg.connect(p.who).claim(p.count, p.name, p.note, cost);
     const rc = await tx.wait();
     const ev = rc.logs.map((l) => { try { return reg.interface.parseLog(l); } catch { return null; } }).find((e) => e && e.name === "Claimed");
     const start = Number(ev.args.start);

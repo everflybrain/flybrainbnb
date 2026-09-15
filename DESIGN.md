@@ -169,7 +169,7 @@ annotations (`FlyBrain.where`) or `backrooms_dictionary.groups(fb)`; counts meas
 | heat | gas | median effective gasPrice (gwei) in sampled blocks; MAD floor 0.01 gwei | per tx | thermosensory `type_re ^TRN_` | 25 |
 | usdt | USDT flow | sum USDT Transfer value (USD), ignore < 1 USD | Transfer `from` | dorsal-glomerulus ORNs `type_re ^ORN_D(?!A1$)` | 999 |
 | usdc | USDC flow | same for USDC | Transfer `from` | ventral-glomerulus ORNs `type_re ^ORN_V.+` | 1,377 |
-| whale | large transfers | count of USDT/USDC Transfers >= 100,000 USD | 1 per `from` | wind/gravity JO, `subclass wind_gravity` | 475 |
+| whale | large transfers | count of USDT/USDC Transfers >= 100,000 USD; MAD floor 1 (one transfer) | 1 per `from` | wind/gravity JO, `subclass wind_gravity` | 475 |
 | dex.buy | WBNB bought on Pancake | USD in: V2 `amount0In` where `amount1Out>0`; V3 `amount0 > 0` | tx hash | taste pegs, `subclass "taste peg"` | 60 |
 | dex.sell | WBNB sold on Pancake | USD out: V2 `amount0Out` where `amount1In>0`; V3 `-amount0` where `amount0<0` | tx hash | labellar bristles, `subclass "labellar bristle"` | 163 |
 | token.buy | $TOKEN bought | tokens moved from a pool to a non-pool | Transfer `to` | `receptor ^putative_ppk25$` | 257 |
@@ -244,8 +244,8 @@ contract FlyBrainRegistry {
     function setOperator(address op) external;                   // onlyOwner
     function transferOwnership(address to) external;             // onlyOwner (allowed: no upgrade/withdraw power)
 
-    function claim(uint32 count, string calldata name, string calldata note) external returns (uint256 claimId);
-    function heartbeat(uint64 epoch, bytes32 stateHash, bytes32 spikeRoot, bytes32 inputHash) external; // onlyOperator, epoch > latest.epoch
+    function claim(uint32 count, string calldata name, string calldata note, uint256 maxBurn) external returns (uint256 claimId); // reverts CostAboveMax if count*price > maxBurn
+    function heartbeat(uint64 epoch, bytes32 stateHash, bytes32 spikeRoot, bytes32 inputHash) external; // onlyOperator, latest.epoch < epoch <= block.timestamp/600 + 1
 
     function claimsCount() external view returns (uint256);
     function getClaim(uint256 id) external view returns (Claim memory);
@@ -258,6 +258,7 @@ contract FlyBrainRegistry {
 Rules:
 - claim: `token != 0`; `1 <= count <= MAX_PER_CLAIM`; `count <= remaining()`;
   `1 <= bytes(name).length <= 32`; `bytes(note).length <= 140`; amount = count * price;
+  `amount <= maxBurn` (the cost the caller was shown; a price raised in between reverts);
   `before = balanceOf(DEAD)`; low-level `transferFrom(msg.sender, DEAD, amount)` accepting
   empty return data or `true`; require `balanceOf(DEAD) - before == amount` (rejects
   fee-on-transfer tokens; the deploy runbook simulates a claim on a local fork before
@@ -305,7 +306,10 @@ Rules:
 - Heartbeat: when the first window of epoch e+1 finishes, send
   `heartbeat(e, stateHash, spikeRoot, inputHash)` from OPERATOR if `REGISTRY_ADDRESS`,
   `OPERATOR_PRIVATE_KEY` and `HEARTBEAT=1` are all set and e > latest.epoch and the epoch has
-  at least one window. Legacy gasPrice = max(eth_gasPrice, 0.05 gwei), gas limit 120k,
+  at least one window, `EPOCH_S` is 600 and the heartbeat RPC (`REGISTRY_RPC_URL`, else
+  `BSC_RPC_URL`; one endpoint, never the public fallback) reports `eth_chainId == CHAIN_ID`;
+  a rejected transaction is never re-sent to another endpoint. The contract rejects an epoch
+  above `block.timestamp / 600 + 1`. Legacy gasPrice = max(eth_gasPrice, 0.05 gwei), gas limit 120k,
   chainId from `CHAIN_ID` (56 live, 31337 in tests). On failure retry once in the next
   window, then skip. Cost ~0.00001 BNB per beat at 0.05 gwei. Builders test only on 31337.
 - Persist `/data/epochs/<e>.json` = `{epoch, windows:[{w, fromBlock, toBlock, bio_ms, raw{},

@@ -8,6 +8,7 @@ const TABLE = ethers.keccak256(ethers.toUtf8Bytes("neuron-table-test"));
 const DEAD = "0x000000000000000000000000000000000000dEaD";
 const PRICE = ethers.parseEther("1000");
 const GAS = {};
+const MAXB = ethers.MaxUint256; // maxBurn when a test is not about it
 
 async function deployRegistry({ n = N, mul, add, operator } = {}) {
   const [owner, op] = await ethers.getSigners();
@@ -116,7 +117,7 @@ describe("owner and token", () => {
     await expect(reg.setToken(ethers.ZeroAddress, PRICE)).to.be.revertedWithCustomError(reg, "ZeroAddress");
     await expect(reg.setToken(alice.address, PRICE)).to.be.revertedWithCustomError(reg, "NotAContract");
     await expect(reg.setToken(await t1.getAddress(), 0)).to.be.revertedWithCustomError(reg, "ZeroPrice");
-    await expect(reg.claim(1, "x", "")).to.be.revertedWithCustomError(reg, "TokenNotSet");
+    await expect(reg.claim(1, "x", "", MAXB)).to.be.revertedWithCustomError(reg, "TokenNotSet");
     await expect(reg.setToken(await t1.getAddress(), PRICE)).to.emit(reg, "TokenSet").withArgs(await t1.getAddress(), PRICE);
     await expect(reg.setToken(await t2.getAddress(), PRICE)).to.be.revertedWithCustomError(reg, "TokenAlreadySet");
     expect(await reg.token()).to.equal(await t1.getAddress());
@@ -143,23 +144,23 @@ describe("claim", () => {
   it("bounds on count and byte limits (multibyte UTF-8)", async () => {
     const { reg, alice } = await setup();
     const r = reg.connect(alice);
-    await expect(r.claim(0, "a", "")).to.be.revertedWithCustomError(reg, "BadCount");
-    await expect(r.claim(5001, "a", "")).to.be.revertedWithCustomError(reg, "BadCount");
-    await expect(r.claim(1, "", "")).to.be.revertedWithCustomError(reg, "BadName");
-    await expect(r.claim(1, "a".repeat(33), "")).to.be.revertedWithCustomError(reg, "BadName");
-    await expect(r.claim(1, "a", "b".repeat(141))).to.be.revertedWithCustomError(reg, "BadNote");
+    await expect(r.claim(0, "a", "", MAXB)).to.be.revertedWithCustomError(reg, "BadCount");
+    await expect(r.claim(5001, "a", "", MAXB)).to.be.revertedWithCustomError(reg, "BadCount");
+    await expect(r.claim(1, "", "", MAXB)).to.be.revertedWithCustomError(reg, "BadName");
+    await expect(r.claim(1, "a".repeat(33), "", MAXB)).to.be.revertedWithCustomError(reg, "BadName");
+    await expect(r.claim(1, "a", "b".repeat(141), MAXB)).to.be.revertedWithCustomError(reg, "BadNote");
 
     const euro32 = "€".repeat(10) + "ab";           // 30 + 2 bytes
     const emoji32 = "\u{1F9E0}".repeat(8);                // 8 x 4 bytes
     const note140 = "é".repeat(70);                  // 70 x 2 bytes
     expect(Buffer.byteLength(euro32)).to.equal(32);
     expect(euro32.length).to.equal(12);
-    await expect(r.claim(1, "€".repeat(11), "")).to.be.revertedWithCustomError(reg, "BadName"); // 11 chars, 33 bytes
-    await expect(r.claim(1, emoji32 + "a", "")).to.be.revertedWithCustomError(reg, "BadName");
-    await expect(r.claim(1, "a", note140 + "a")).to.be.revertedWithCustomError(reg, "BadNote");
-    await r.claim(1, euro32, note140);
-    await r.claim(1, emoji32, "");
-    await r.claim(5000, "a".repeat(32), "z".repeat(140));
+    await expect(r.claim(1, "€".repeat(11), "", MAXB)).to.be.revertedWithCustomError(reg, "BadName"); // 11 chars, 33 bytes
+    await expect(r.claim(1, emoji32 + "a", "", MAXB)).to.be.revertedWithCustomError(reg, "BadName");
+    await expect(r.claim(1, "a", note140 + "a", MAXB)).to.be.revertedWithCustomError(reg, "BadNote");
+    await r.claim(1, euro32, note140, MAXB);
+    await r.claim(1, emoji32, "", MAXB);
+    await r.claim(5000, "a".repeat(32), "z".repeat(140), MAXB);
     const c0 = await reg.getClaim(0);
     expect(c0.name).to.equal(euro32);
     expect(c0.note).to.equal(note140);
@@ -171,7 +172,7 @@ describe("claim", () => {
   it("burns exactly count * price to 0x...dEaD and emits Claimed", async () => {
     const { reg, token, alice } = await setup();
     const before = await token.balanceOf(alice.address);
-    await expect(reg.connect(alice).claim(3, "<script>alert(1)</script>", "note"))
+    await expect(reg.connect(alice).claim(3, "<script>alert(1)</script>", "note", MAXB))
       .to.emit(reg, "Claimed").withArgs(0, alice.address, 0, 3, PRICE * 3n, "<script>alert(1)</script>", "note")
       .and.to.emit(token, "Transfer").withArgs(alice.address, DEAD, PRICE * 3n);
     expect(await token.balanceOf(DEAD)).to.equal(PRICE * 3n);
@@ -187,12 +188,12 @@ describe("claim", () => {
   it("rejects without allowance or balance, and fee-on-transfer tokens", async () => {
     const { reg, token, bob, signers } = await setup();
     const poor = signers[5];
-    await expect(reg.connect(poor).claim(1, "p", "")).to.be.revertedWithCustomError(reg, "TransferFailed");
+    await expect(reg.connect(poor).claim(1, "p", "", MAXB)).to.be.revertedWithCustomError(reg, "TransferFailed");
     await token.connect(bob).approve(await reg.getAddress(), PRICE - 1n);
-    await expect(reg.connect(bob).claim(1, "b", "")).to.be.revertedWithCustomError(reg, "TransferFailed");
+    await expect(reg.connect(bob).claim(1, "b", "", MAXB)).to.be.revertedWithCustomError(reg, "TransferFailed");
 
     const tax = await setup({ tax: true });
-    await expect(tax.reg.connect(tax.alice).claim(2, "t", ""))
+    await expect(tax.reg.connect(tax.alice).claim(2, "t", "", MAXB))
       .to.be.revertedWithCustomError(tax.reg, "BurnMismatch").withArgs(PRICE * 2n, (PRICE * 2n * 95n) / 100n);
     expect(await tax.reg.claimedNeurons()).to.equal(0n);
   });
@@ -202,7 +203,7 @@ describe("claim", () => {
     const sizes = [1, 50, 7, 5000, 2];
     let start = 0;
     for (let k = 0; k < sizes.length; k++) {
-      await reg.connect(k % 2 ? bob : alice).claim(sizes[k], "c" + k, "");
+      await reg.connect(k % 2 ? bob : alice).claim(sizes[k], "c" + k, "", MAXB);
       start += sizes[k];
     }
     let s = 0;
@@ -229,12 +230,12 @@ describe("claim", () => {
 
   it("sells out exactly at N", async () => {
     const { reg, alice } = await setup({ n: 7, mul: 3, add: 4 });
-    await expect(reg.connect(alice).claim(8, "a", "")).to.be.revertedWithCustomError(reg, "SoldOut");
-    await reg.connect(alice).claim(5, "a", "");
-    await expect(reg.connect(alice).claim(3, "a", "")).to.be.revertedWithCustomError(reg, "SoldOut");
-    await reg.connect(alice).claim(2, "b", "");
+    await expect(reg.connect(alice).claim(8, "a", "", MAXB)).to.be.revertedWithCustomError(reg, "SoldOut");
+    await reg.connect(alice).claim(5, "a", "", MAXB);
+    await expect(reg.connect(alice).claim(3, "a", "", MAXB)).to.be.revertedWithCustomError(reg, "SoldOut");
+    await reg.connect(alice).claim(2, "b", "", MAXB);
     expect(await reg.remaining()).to.equal(0n);
-    await expect(reg.connect(alice).claim(1, "c", "")).to.be.revertedWithCustomError(reg, "SoldOut");
+    await expect(reg.connect(alice).claim(1, "c", "", MAXB)).to.be.revertedWithCustomError(reg, "SoldOut");
     const ids = new Set();
     for (let n = 0; n < 7; n++) {
       const [claimed, id] = await reg.claimOfNeuron(n);
@@ -248,12 +249,12 @@ describe("claim", () => {
   it("gas: claim(1), claim(50)", async () => {
     const { reg, bob, alice } = await setup();
     const name = "fly fan 12345", note = "burned for the brain, forty bytes long..";
-    GAS["claim(1) first ever (13B name, 40B note)"] = await gasOf(reg.connect(alice).claim(1, name, note));
-    GAS["claim(1) later (13B name, 40B note)"] = await gasOf(reg.connect(bob).claim(1, name, note));
-    GAS["claim(50) (13B name, 40B note)"] = await gasOf(reg.connect(alice).claim(50, name, note));
-    GAS["claim(1) later (1B name, no note)"] = await gasOf(reg.connect(bob).claim(1, "a", ""));
-    GAS["claim(50) max strings (32B name, 140B note)"] = await gasOf(reg.connect(alice).claim(50, "n".repeat(32), "x".repeat(140)));
-    GAS["claim(5000) (13B name, 40B note)"] = await gasOf(reg.connect(alice).claim(5000, name, note));
+    GAS["claim(1) first ever (13B name, 40B note)"] = await gasOf(reg.connect(alice).claim(1, name, note, MAXB));
+    GAS["claim(1) later (13B name, 40B note)"] = await gasOf(reg.connect(bob).claim(1, name, note, MAXB));
+    GAS["claim(50) (13B name, 40B note)"] = await gasOf(reg.connect(alice).claim(50, name, note, MAXB));
+    GAS["claim(1) later (1B name, no note)"] = await gasOf(reg.connect(bob).claim(1, "a", "", MAXB));
+    GAS["claim(50) max strings (32B name, 140B note)"] = await gasOf(reg.connect(alice).claim(50, "n".repeat(32), "x".repeat(140), MAXB));
+    GAS["claim(5000) (13B name, 40B note)"] = await gasOf(reg.connect(alice).claim(5000, name, note, MAXB));
   });
 });
 
@@ -298,5 +299,43 @@ describe("heartbeat", () => {
   after(() => {
     console.log("\n    gas used (tx receipts):");
     for (const [k, v] of Object.entries(GAS)) console.log(`      ${k.padEnd(46)} ${v}`);
+  });
+});
+
+describe("review fixes", () => {
+  const { time } = require("@nomicfoundation/hardhat-network-helpers");
+  const h = (s) => ethers.sha256(ethers.toUtf8Bytes(s));
+
+  it("heartbeat epoch cannot be ahead of real time, so one bad beat never blocks later epochs", async () => {
+    const [owner, op, newOp] = await ethers.getSigners();
+    const reg = await deployRegistry();
+    const MAX = (1n << 64n) - 1n;
+    await expect(reg.connect(op).heartbeat(MAX, h("s"), h("k"), h("i"))).to.be.revertedWithCustomError(reg, "EpochInFuture");
+    const t = BigInt(await time.latest()) + 1n;              // next block's timestamp
+    await time.setNextBlockTimestamp(t);
+    const e60 = t / 60n;                                      // an EPOCH_S=60 epoch
+    await expect(reg.connect(op).heartbeat(e60, h("s"), h("k"), h("i"))).to.be.revertedWithCustomError(reg, "EpochInFuture");
+    const now = (t + 1n) / 600n;
+    await time.setNextBlockTimestamp(t + 1n);
+    await reg.connect(op).heartbeat(now + 1n, h("s"), h("k"), h("i"));   // +1 skew allowed
+    await expect(reg.connect(op).heartbeat(now + 2n, h("s"), h("k"), h("i"))).to.be.revertedWithCustomError(reg, "EpochInFuture");
+    // a leaked key's worst case is now+1: the next real epoch still lands, even after rotation
+    await reg.setOperator(newOp.address);
+    await time.increase(1200);
+    const later = BigInt(await time.latest()) / 600n;
+    await reg.connect(newOp).heartbeat(later, h("s"), h("k"), h("i"));
+    expect((await reg.latest()).epoch).to.equal(later);
+  });
+
+  it("claim reverts when the cost is above maxBurn (price raised after the user saw it)", async () => {
+    const { reg, token, alice } = await setup();            // alice has an unlimited allowance
+    const shown = PRICE * 10n;
+    await reg.setPrice(PRICE * 50n);
+    await expect(reg.connect(alice).claim(10, "me", "", shown))
+      .to.be.revertedWithCustomError(reg, "CostAboveMax").withArgs(PRICE * 500n, shown);
+    expect(await token.balanceOf(DEAD)).to.equal(0n);
+    await reg.setPrice(PRICE);
+    await expect(reg.connect(alice).claim(10, "me", "", shown)).to.emit(reg, "Claimed");   // exact cost passes
+    expect(await token.balanceOf(DEAD)).to.equal(shown);
   });
 });

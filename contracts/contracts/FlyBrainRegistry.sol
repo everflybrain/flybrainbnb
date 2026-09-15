@@ -16,6 +16,7 @@ contract FlyBrainRegistry {
     uint32 public constant MAX_PER_CLAIM = 5000;
     uint256 public constant MAX_NAME_BYTES = 32;
     uint256 public constant MAX_NOTE_BYTES = 140;
+    uint256 public constant EPOCH_SECONDS = 600;
 
     uint32 public immutable neuronCount;
     bytes32 public immutable connectomeHash;
@@ -80,6 +81,8 @@ contract FlyBrainRegistry {
     error TransferFailed();
     error BurnMismatch(uint256 expected, uint256 received);
     error EpochNotIncreasing();
+    error EpochInFuture();
+    error CostAboveMax(uint256 cost, uint256 maxBurn);
     error OutOfRange();
 
     modifier onlyOwner() {
@@ -161,19 +164,21 @@ contract FlyBrainRegistry {
 
     /// @notice Burns count * pricePerNeuron tokens to 0x...dEaD and records name + note on the next
     ///         `count` neurons of the fixed shuffled order. Nothing is returned; no NFT.
-    function claim(uint32 count, string calldata name, string calldata note) external returns (uint256 claimId) {
+    /// @param maxBurn The most the caller agrees to burn (the cost they were shown). Reverts if the
+    ///        price was raised in between, so a leftover allowance can never be charged more.
+    function claim(uint32 count, string calldata name, string calldata note, uint256 maxBurn) external returns (uint256 claimId) {
         if (_lock != 0) revert Reentrancy();
         address t = token;
         if (t == address(0)) revert TokenNotSet();
         if (count == 0 || count > MAX_PER_CLAIM) revert BadCount();
         uint32 start = claimedNeurons;
         if (count > neuronCount - start) revert SoldOut();
-        uint256 nameLen = bytes(name).length;
-        if (nameLen == 0 || nameLen > MAX_NAME_BYTES) revert BadName();
+        if (bytes(name).length == 0 || bytes(name).length > MAX_NAME_BYTES) revert BadName();
         if (bytes(note).length > MAX_NOTE_BYTES) revert BadNote();
 
         _lock = 1;
         uint256 amount = uint256(count) * pricePerNeuron;
+        if (amount > maxBurn) revert CostAboveMax(amount, maxBurn);
         _burn(t, amount);
 
         claimId = _claims.length;
@@ -205,6 +210,9 @@ contract FlyBrainRegistry {
     function heartbeat(uint64 epoch, bytes32 stateHash, bytes32 spikeRoot, bytes32 inputHash) external {
         if (msg.sender != operator) revert NotOperator();
         if (epoch <= _beatEpoch) revert EpochNotIncreasing();
+        // An epoch can never be ahead of real time (+1 for clock skew), so no single heartbeat,
+        // even from a leaked operator key, can block the heartbeats of later epochs.
+        if (epoch > block.timestamp / EPOCH_SECONDS + 1) revert EpochInFuture();
         _beatEpoch = epoch;
         _beatTime = uint32(block.timestamp);
         _stateHash = stateHash;

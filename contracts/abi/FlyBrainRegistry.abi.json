@@ -72,6 +72,27 @@
   "type": "error"
  },
  {
+  "inputs": [
+   {
+    "internalType": "uint256",
+    "name": "cost",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "maxBurn",
+    "type": "uint256"
+   }
+  ],
+  "name": "CostAboveMax",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "EpochInFuture",
+  "type": "error"
+ },
+ {
   "inputs": [],
   "name": "EpochNotIncreasing",
   "type": "error"
@@ -284,6 +305,19 @@
  },
  {
   "inputs": [],
+  "name": "EPOCH_SECONDS",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
   "name": "MAX_NAME_BYTES",
   "outputs": [
    {
@@ -337,6 +371,11 @@
     "internalType": "string",
     "name": "note",
     "type": "string"
+   },
+   {
+    "internalType": "uint256",
+    "name": "maxBurn",
+    "type": "uint256"
    }
   ],
   "name": "claim",
