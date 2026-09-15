@@ -2,96 +2,102 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>flybrainbnb</title>
 <meta name="description" content="Real fly wiring, simplified neurons. 165,122 neurons from the male fly connectome, simulated off-chain and driven by live BNB Smart Chain activity.">
-<meta name="theme-color" content="#07090d">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090d'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23ffb84d'/%3E%3Ccircle cx='8' cy='10' r='2' fill='%234f6478'/%3E%3Ccircle cx='24' cy='22' r='2' fill='%234f6478'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#050607">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23050607'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23f0b90b'/%3E%3Ccircle cx='8' cy='10' r='2' fill='%23474b52'/%3E%3Ccircle cx='24' cy='22' r='2' fill='%23474b52'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header class="top">
+<header class="top" id="top">
   <a class="mark" href="#">flybrain<span>bnb</span></a>
   <nav aria-label="Sections">
-    <a href="#owners">Owners</a><a href="#lore">Lore</a><a href="#proof">Proof</a><a href="#credits">Credits</a>
+    <a href="#owners">Owners</a><a href="#lore">Lore</a><a href="#credits">Credits</a>
   </nav>
+  <button type="button" id="detailsBtn" class="tbtn" aria-controls="drawer" aria-expanded="false">Details</button>
   <div id="pill" class="pill" role="status" aria-live="polite"><i></i><span>connecting</span></div>
 </header>
 
 <main>
-  <section class="hero">
+  <section class="hero" id="hero">
     <div class="stage" id="stage">
+      <canvas id="rain" aria-hidden="true"></canvas>
       <canvas id="brain" aria-label="3D map of 165,122 fly neurons, lit by live activity"></canvas>
-      <div class="hook">
-        <h1>Real fly wiring. BNB Chain makes it fire.</h1>
+      <div class="veil" aria-hidden="true"></div>
+
+      <div class="hook reveal" style="--d: 80ms">
+        <p class="eyebrow">MaleCNS v1.0 <span class="sep"></span> 165,122 neurons<span class="opt"> <span class="sep"></span> BNB Smart Chain</span></p>
+        <h1>Real fly wiring.<br>BNB Chain makes it fire.</h1>
         <p>165,122 neurons from the male fly connectome, simulated off-chain. Burn tokens to write your name onto some of them, forever.</p>
       </div>
-      <dl class="stats" id="stats" hidden>
+
+      <dl class="readout reveal" id="stats" hidden style="--d: 200ms">
         <div><dt>active neurons</dt><dd id="sActive">-</dd></div>
         <div><dt>mean rate</dt><dd id="sMean">-</dd></div>
         <div><dt>block</dt><dd id="sBlock">-</dd></div>
       </dl>
+
       <div class="offline" id="offline" hidden>
         <b>brain offline</b>
         <span id="offlineWhy">Can't reach the brain server right now. Nothing shown here is made up, so the map stays dark until it's back.</span>
       </div>
-      <div class="loading" id="loading">loading 165,122 neurons</div>
-      <div class="ctrl">
-        <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+      <div class="loading" id="loading"><i></i>loading 165,122 neurons</div>
+
+      <div class="bar reveal" role="toolbar" aria-label="Map controls" style="--d: 320ms">
         <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
-        <button type="button" id="spin" aria-pressed="true" aria-label="Toggle slow rotation">spin</button>
+        <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+        <button type="button" id="spin" aria-pressed="true" aria-label="Toggle slow rotation">drift</button>
+        <span class="hint">drag to rotate <span class="sep"></span> scroll to zoom <span class="sep"></span> tap a neuron</span>
       </div>
-      <p class="legend">
-        <span class="sw fire"></span>fired in the last window
-        <span class="sw mine"></span>highlighted claim
-        <span class="hint">drag to rotate, scroll to zoom, tap a neuron</span>
-      </p>
+
       <article class="ncard" id="ncard" hidden aria-live="polite"></article>
     </div>
 
-    <aside class="side">
-      <section class="panel burn" id="burn" aria-labelledby="burnTitle">
+    <aside class="burn reveal" id="burn" aria-labelledby="burnTitle" style="--d: 260ms">
+      <div class="burn-head">
         <h2 id="burnTitle">Burn your name into the brain</h2>
+        <p class="price" id="priceLine" hidden><span id="price">-</span> per neuron <span class="sep"></span> <span id="left">-</span> left</p>
+      </div>
 
-        <div id="burnClosed">
-          <p class="closed">token isn't live yet</p>
-          <p class="sub" id="closedWhy">The coin hasn't launched. When it does, its address and the price per neuron are set once in the registry contract and this panel opens.</p>
-        </div>
+      <div id="burnClosed">
+        <p class="closed"><span id="closedTitle" class="tag">Coming soon</span></p>
+        <p class="sub" id="closedWhy">The coin hasn't launched. When it does, its address and the price per neuron are set once in the registry contract and this panel opens.</p>
+      </div>
 
-        <form id="burnForm" hidden novalidate>
-          <p class="price"><span id="price">-</span> per neuron <span class="dot">&middot;</span> <span id="left">-</span> neurons left</p>
-          <label class="field">
-            <span class="lab">Neurons <em id="countHint"></em></span>
-            <input id="count" type="number" inputmode="numeric" min="1" step="1" value="10" required>
-          </label>
-          <label class="field">
-            <span class="lab">Name <em id="nameCtr">0/32 bytes</em></span>
-            <input id="name" type="text" autocomplete="off" spellcheck="false" required>
-          </label>
-          <label class="field">
-            <span class="lab">Note, optional <em id="noteCtr">0/140 bytes</em></span>
-            <textarea id="note" rows="2" spellcheck="false"></textarea>
-          </label>
-          <p class="cost">You burn <b id="cost">-</b></p>
-          <button id="burnBtn" class="btn" type="submit">Connect wallet</button>
-          <p id="burnMsg" class="msg" role="status" aria-live="polite"></p>
-        </form>
+      <form id="burnForm" hidden novalidate>
+        <label class="field">
+          <span class="lab"><span class="n">01</span>Neurons <em id="countHint"></em></span>
+          <input id="count" type="number" inputmode="numeric" min="1" step="1" value="10" required>
+        </label>
+        <label class="field">
+          <span class="lab"><span class="n">02</span>Name <em id="nameCtr">0/32 bytes</em></span>
+          <input id="name" type="text" autocomplete="off" spellcheck="false" required>
+        </label>
+        <label class="field">
+          <span class="lab"><span class="n">03</span>Note, optional <em id="noteCtr">0/140 bytes</em></span>
+          <textarea id="note" rows="2" spellcheck="false"></textarea>
+        </label>
+        <p class="cost"><span>You burn</span><b id="cost">-</b></p>
+        <button id="burnBtn" class="btn gold" type="submit">Connect wallet</button>
+        <p id="burnMsg" class="msg" role="status" aria-live="polite"></p>
+      </form>
 
-        <div id="burnDone" class="done" hidden aria-live="polite"></div>
+      <div id="burnDone" class="done" hidden aria-live="polite"></div>
 
-        <ul class="fine">
+      <p class="fine-line">Burned to <code>0x&hellip;dEaD</code>. No NFT. Public on BNB Chain forever.</p>
+      <details class="fine">
+        <summary>What exactly happens</summary>
+        <ul>
           <li>Tokens go to <code>0x&hellip;dEaD</code>. Nothing is returned.</li>
           <li>No NFT. Your wallet, name and note are written into the registry contract.</li>
           <li>Public on BNB Chain forever. Nobody can edit or remove them, including us.</li>
           <li>Neurons are dealt from a fixed shuffled order: you pick how many, not which.</li>
         </ul>
-      </section>
-
-      <section class="panel senses" aria-labelledby="sensesTitle">
-        <h2 id="sensesTitle">Senses <span id="warm" class="badge" hidden>warming up</span></h2>
-        <p class="sub">Each sense fires only when its chain signal rises above its own last 72 minutes.</p>
-        <ul id="inputs" class="inputs"><li class="empty">brain offline</li></ul>
-      </section>
+      </details>
     </aside>
   </section>
 
@@ -109,32 +115,29 @@
   <section id="lore" class="band">
     <div class="wrap">
       <h2>A fly brain, on BNB Chain, forever.</h2>
-      <p class="lead">We took a real fruit fly's brain, all 165,122 neurons and 10 million connections mapped cell by cell, and wired it into BNB Chain. The chain is what it feels: every trade, every transfer, every gas spike hits real sensory neurons and ripples through the wiring. Its pulse is written to BNB Chain every 10 minutes, its fingerprint has been on-chain since block 121,994,444, and the names burned into it can never be erased. No reset, no admin key, no delete. Its pulse and its memory live on the chain for as long as the chain exists.</p>
+      <p class="lead">We took a real fruit fly's brain, all 165,122 neurons and 10 million connections mapped cell by cell, and wired it into BNB Chain. The chain is what it feels: every trade, transfer and gas spike hits real sensory neurons and ripples through the wiring. Its pulse is written to BNB Chain every 10 minutes, its fingerprint has been on-chain since block 121,994,444, and the names burned into it can never be erased. No reset, no admin key, no delete.</p>
       <div class="three">
         <div>
+          <span class="idx">01</span>
           <h3>Own the neurons</h3>
           <p>Burn the coin, pick how many neurons you want, and write your name and a note. The contract hands you neurons from a fixed shuffled order and writes the record straight onto BNB Chain: your wallet, your name, your words, tied to those neurons permanently. Nobody can remove it, not even us. Tap one of your neurons on the map and your name comes up. When they fire, that's your piece of the brain lighting up.</p>
         </div>
         <div>
+          <span class="idx">02</span>
           <h3>The living heatmap</h3>
           <p>Every 12 seconds the brain runs on the newest BNB Chain blocks. The map draws all 165,122 neurons, laid out from the connectome's own cell positions, and the ones that just fired glow amber and fade as they settle. Traffic hits the visual cells, gas the heat sensors, USDT and USDC flows the smell receptors, whale transfers the wind sensors, PancakeSwap buys and sells the taste cells. Once the coin is live, its buys, sells and burns get receptors of their own. Busy chain, bright brain. Quiet chain, dark brain.</p>
         </div>
         <div>
+          <span class="idx">03</span>
           <h3>A public pulse</h3>
           <p>Every 10 minutes the brain's heartbeat goes on-chain: a hash of its full state, a Merkle root of exactly which neurons fired, and a hash of what it sensed. Anyone can verify it on BscScan, and any owner can prove their neuron fired in a given epoch. Miss a beat and the whole world sees it. This is a brain with a heartbeat you can audit.</p>
+          <button type="button" class="link" data-open-drawer="proof">See the latest heartbeat &rarr;</button>
         </div>
       </div>
     </div>
   </section>
 
-  <section id="proof" class="band">
-    <div class="wrap">
-      <h2>On-chain proof</h2>
-      <dl class="proof" id="proofList"></dl>
-    </div>
-  </section>
-
-  <section id="credits" class="band">
+  <section id="credits" class="band credits-band">
     <div class="wrap">
       <h2>Credits</h2>
       <ul class="credits">
@@ -147,12 +150,41 @@
   </section>
 </main>
 
-<footer class="foot">flybrainbnb &middot; real fly wiring, simplified neurons</footer>
+<footer class="foot">flybrainbnb <span class="sep"></span> real fly wiring, simplified neurons</footer>
+
+<div class="scrim" id="scrim" aria-hidden="true"></div>
+<aside id="drawer" class="drawer" aria-hidden="true" aria-labelledby="drawerTitle" tabindex="-1">
+  <div class="drawer-head">
+    <h2 id="drawerTitle">Details</h2>
+    <button type="button" id="drawerClose" class="x" aria-label="Close details">&times;</button>
+  </div>
+  <div class="drawer-body">
+    <section class="dsec" id="senses" aria-labelledby="sensesTitle">
+      <h3 id="sensesTitle">Senses <span id="warm" class="badge" hidden>warming up</span></h3>
+      <p class="sub">Each sense fires only when its chain signal rises above its own last 72 minutes.</p>
+      <ul id="inputs" class="inputs"><li class="empty">brain offline</li></ul>
+    </section>
+    <section class="dsec" aria-labelledby="legendTitle">
+      <h3 id="legendTitle">Reading the map</h3>
+      <ul class="legend">
+        <li><span class="sw fire"></span>fired in the last 12 s window, fading as it settles</li>
+        <li><span class="sw mine"></span>a highlighted claim</li>
+        <li><span class="sw base"></span>quiet neuron, tinted by class; sensory groups by sense</li>
+        <li><span class="sw imp"></span>sensory cells without a soma are placed near their targets: layout, not anatomy</li>
+      </ul>
+    </section>
+    <section class="dsec" id="proof" aria-labelledby="proofTitle">
+      <h3 id="proofTitle">On-chain proof</h3>
+      <dl class="proof" id="proofList"></dl>
+    </section>
+  </div>
+</aside>
 
 <script src="config.js"></script>
 <script src="abi.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.17.0/ethers.umd.min.js" integrity="sha384-lApM4ELRuFNT7NgNqnXB2zFWgSDdhVvmnOHov2DPJz/2zuNpZImXBeklFr18ilvi" crossorigin="anonymous"></script>
+<script src="rain.js"></script>
 <script src="heatmap.js"></script>
 <script src="burn.js"></script>
 <script src="app.js"></script>

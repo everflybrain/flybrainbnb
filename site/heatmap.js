@@ -1,4 +1,7 @@
 // 3D neuron heatmap: THREE.Points over /neurons.bin, lit by /frame.bin spike counts.
+// Two passes over one geometry: opaque dots with a depth fade, then an additive glow that is
+// only emitted by neurons that fired (or are highlighted). One extra single-point pass rings
+// the neuron that was tapped.
 (function () {
   "use strict";
   var REDUCED = window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -47,18 +50,22 @@
     };
   }
 
+  // pass 1: opaque dots. Far side of the cloud fades toward the ground, near side lifts a touch.
   var VERT = [
     "attribute vec3 base;", "attribute float act;", "attribute float hl;",
-    "uniform float uFade; uniform float uSize; uniform float uPr;",
+    "uniform float uFade; uniform float uSize; uniform float uPr; uniform float uDist;",
     "varying vec3 vC;",
     "void main(){",
     "  float a = clamp(act * uFade, 0.0, 1.0);",
-    "  vec3 warm = mix(vec3(1.0, 0.55, 0.12), vec3(1.0, 0.93, 0.68), smoothstep(0.35, 1.0, a));",
+    "  vec3 warm = mix(vec3(1.0, 0.62, 0.10), vec3(1.0, 0.92, 0.66), smoothstep(0.35, 1.0, a));",
     "  vec3 c = mix(base, warm, smoothstep(0.0, 0.12, a));",
-    "  c = mix(c, vec3(0.66, 0.83, 1.0), hl);",
+    "  c = mix(c, vec3(0.62, 0.80, 1.0), hl);",
     "  vec4 mv = modelViewMatrix * vec4(position, 1.0);",
+    "  float dz = (-mv.z - uDist) / 1.5;",
+    "  c *= 1.0 - 0.48 * clamp(dz, 0.0, 1.0) * (1.0 - 0.6 * a);",
+    "  c *= 1.0 + 0.10 * clamp(-dz, 0.0, 1.0);",
     "  gl_Position = projectionMatrix * mv;",
-    "  gl_PointSize = uSize * uPr * (1.0 + 1.6 * a + 1.4 * hl) / -mv.z;",
+    "  gl_PointSize = uSize * uPr * (1.0 + 1.5 * a + 1.3 * hl) / -mv.z;",
     "  vC = c;",
     "}"
   ].join("\n");
@@ -67,8 +74,56 @@
     "void main(){ vec2 p = gl_PointCoord - 0.5; if (dot(p, p) > 0.25) discard; gl_FragColor = vec4(vC, 1.0); }"
   ].join("\n");
 
+  // pass 2: additive bloom, emitted only where act or hl is above zero
+  var GLOW_VERT = [
+    "attribute float act;", "attribute float hl;",
+    "uniform float uFade; uniform float uSize; uniform float uPr;",
+    "varying vec4 vG;",
+    "void main(){",
+    "  float a = clamp(act * uFade, 0.0, 1.0);",
+    "  float h = hl * 0.5;",
+    "  float g = max(a, h);",
+    "  vec3 warm = mix(vec3(1.0, 0.64, 0.12), vec3(1.0, 0.88, 0.55), smoothstep(0.3, 1.0, a));",
+    "  vec3 col = a >= h ? warm : vec3(0.5, 0.72, 1.0);",
+    "  vec4 mv = modelViewMatrix * vec4(position, 1.0);",
+    "  gl_Position = projectionMatrix * mv;",
+    "  gl_PointSize = g > 0.02 ? uSize * uPr * (3.5 + 5.5 * a + 2.5 * hl) / -mv.z : 0.0;",
+    "  vG = vec4(col, g);",
+    "}"
+  ].join("\n");
+  var GLOW_FRAG = [
+    "varying vec4 vG;",
+    "void main(){",
+    "  if (vG.a < 0.02) discard;",
+    "  vec2 p = gl_PointCoord - 0.5; float d2 = dot(p, p) * 4.0;",
+    "  if (d2 > 1.0) discard;",
+    "  float g = exp(-d2 * 3.4) * (1.0 - d2);",
+    "  gl_FragColor = vec4(vG.rgb * g, g * vG.a * 0.32);",
+    "}"
+  ].join("\n");
+
+  // pass 3: a thin ring around the tapped neuron, fixed screen size
+  var RING_VERT = [
+    "uniform float uPr; uniform float uT;",
+    "void main(){",
+    "  vec4 mv = modelViewMatrix * vec4(position, 1.0);",
+    "  gl_Position = projectionMatrix * mv;",
+    "  gl_PointSize = (30.0 + 2.0 * sin(uT * 2.2)) * uPr;",
+    "}"
+  ].join("\n");
+  var RING_FRAG = [
+    "void main(){",
+    "  float d = length(gl_PointCoord - 0.5) * 2.0;",
+    "  float ring = smoothstep(0.66, 0.74, d) * (1.0 - smoothstep(0.84, 0.94, d));",
+    "  float dot = 1.0 - smoothstep(0.08, 0.18, d);",
+    "  float a = max(ring * 0.9, dot);",
+    "  if (a < 0.01) discard;",
+    "  gl_FragColor = vec4(0.96, 0.78, 0.25, a);",
+    "}"
+  ].join("\n");
+
   var H = {
-    ready: false, N: 0, onPick: null,
+    ready: false, N: 0, onPick: null, lastCounts: null, picked: -1,
     init: function (canvas) {
       if (!window.THREE) throw new Error("three.js failed to load");
       this.canvas = canvas;
@@ -80,6 +135,7 @@
       this.dist = 3.3;
       this.yaw = -0.6; this.pitch = 0.12;
       this.spin = !REDUCED;
+      this.sway = 0;
       this.pivot = new THREE.Group();
       this.scene.add(this.pivot);
       this.fadeStart = performance.now();
@@ -124,13 +180,35 @@
       geo.setAttribute("act", this.actAttr);
       geo.setAttribute("hl", this.hlAttr);
       geo.computeBoundingSphere();
+      var pr = this.renderer.getPixelRatio();
       this.mat = new THREE.ShaderMaterial({
         vertexShader: VERT, fragmentShader: FRAG, transparent: false, depthWrite: true,
-        uniforms: { uFade: { value: 1 }, uSize: { value: 4.2 }, uPr: { value: this.renderer.getPixelRatio() } }
+        uniforms: { uFade: { value: 1 }, uSize: { value: 4.2 }, uPr: { value: pr }, uDist: { value: 3.8 } }
       });
-      if (this.points) { this.pivot.remove(this.points); this.points.geometry.dispose(); }
+      this.glowMat = new THREE.ShaderMaterial({
+        vertexShader: GLOW_VERT, fragmentShader: GLOW_FRAG, transparent: true, depthWrite: false, depthTest: false,
+        blending: THREE.AdditiveBlending,
+        uniforms: { uFade: this.mat.uniforms.uFade, uSize: this.mat.uniforms.uSize, uPr: { value: pr } }
+      });
+      if (this.points) { this.pivot.remove(this.points); this.pivot.remove(this.glow); this.points.geometry.dispose(); }
       this.points = new THREE.Points(geo, this.mat);
+      this.glow = new THREE.Points(geo, this.glowMat);
+      this.glow.renderOrder = 1;
+      this.glow.frustumCulled = false;
       this.pivot.add(this.points);
+      this.pivot.add(this.glow);
+      if (!this.ring) {
+        var rg = new THREE.BufferGeometry();
+        this.ringPos = new THREE.BufferAttribute(new Float32Array(3), 3); this.ringPos.setUsage(THREE.DynamicDrawUsage);
+        rg.setAttribute("position", this.ringPos);
+        this.ringMat = new THREE.ShaderMaterial({ vertexShader: RING_VERT, fragmentShader: RING_FRAG, transparent: true, depthWrite: false, depthTest: false,
+          uniforms: { uPr: { value: pr }, uT: { value: 0 } } });
+        this.ring = new THREE.Points(rg, this.ringMat);
+        this.ring.renderOrder = 2;
+        this.ring.frustumCulled = false;
+        this.ring.visible = false;
+        this.pivot.add(this.ring);
+      }
       this.ready = true;
       this._resize();
     },
@@ -153,7 +231,18 @@
       }
       this.actAttr.needsUpdate = true;
       this.fadeStart = performance.now();
+      this.lastCounts = counts;
       return true;
+    },
+
+    // spikes of one neuron in the last window that landed (null before the first frame)
+    firedCount: function (id) {
+      if (!this.lastCounts || id < 0 || id >= this.N) return null;
+      return this.lastCounts[id];
+    },
+    activity: function (id) {
+      if (!this.ready || id < 0 || id >= this.N) return 0;
+      return this.act[id] * this.currentFade();
     },
 
     clearActivity: function () {
@@ -166,6 +255,16 @@
       this.hl.fill(0);
       for (var i = 0; i < ids.length; i++) { var id = ids[i]; if (id >= 0 && id < this.N) this.hl[id] = 1; }
       this.hlAttr.needsUpdate = true;
+    },
+
+    setPick: function (id) {
+      this.picked = id;
+      if (!this.ring) return;
+      if (id < 0 || id >= this.N) { this.ring.visible = false; return; }
+      var a = this.ringPos.array;
+      a[0] = this.pos[3 * id]; a[1] = this.pos[3 * id + 1]; a[2] = this.pos[3 * id + 2];
+      this.ringPos.needsUpdate = true;
+      this.ring.visible = true;
     },
 
     zoom: function (k) { this.dist = Math.min(7, Math.max(1.2, this.dist * k)); this.lastUser = performance.now(); },
@@ -235,9 +334,12 @@
       this.camera.aspect = w / h;
       // fit the whole CNS (about 2.2 units tall, 1.6 wide) with some margin, whatever the aspect
       var t = Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2));
-      this.fitDist = Math.max(1.45 / t, 1.0 / (t * (w / h)));
-      // on wide stages push the brain right of centre so the headline on the left stays clear
-      if (w / h > 1.2) this.camera.setViewOffset(w, h, -w * 0.09, -h * 0.02, w, h); else this.camera.clearViewOffset();
+      this.fitDist = Math.max(1.5 / t, 1.05 / (t * (w / h)));
+      // wide stages: nudge the brain left of centre so the burn module on the right stays clear;
+      // tall stages: push it down under the headline and readout
+      if (w / h > 1.25) this.camera.setViewOffset(w, h, w * 0.05, 0, w, h);
+      else if (w / h < 0.85) this.camera.setViewOffset(w, h, 0, -h * 0.11, w, h);
+      else this.camera.clearViewOffset();
       this.camera.updateProjectionMatrix();
       // base point size in CSS px at the fitted distance, grows with the drawing size
       if (this.mat) this.mat.uniforms.uSize.value = Math.max(1.3, Math.min(2.6, Math.min(w, h * 0.75) / 420)) * this.fitDist;
@@ -247,12 +349,19 @@
       requestAnimationFrame(this._loop);
       if (document.hidden) return;
       var dt = Math.min(64, now - (this._last || now)); this._last = now;
-      if (this.spin && now - this.lastUser > 3000) this.yaw += dt * 0.00008;
-      var d = this.dist / 3.3 * (this.fitDist || 3.8);
+      var idle = now - this.lastUser > 3000;
+      if (this.spin && idle) this.yaw += dt * 0.00007;
+      // slow cinematic drift: a faint pitch sway and breath in the camera distance, only when idle
+      var want = (!REDUCED && this.spin && idle) ? 1 : 0;
+      this.sway += (want - this.sway) * Math.min(1, dt / 900);
+      var sway = this.sway * 0.035 * Math.sin(now * 0.00021);
+      var breath = 1 + this.sway * 0.012 * Math.sin(now * 0.00013);
+      var d = this.dist / 3.3 * (this.fitDist || 3.8) * breath;
       this.camera.position.set(0, 0, d);
       this.camera.lookAt(0, 0, 0);
-      this.pivot.rotation.set(this.pitch, this.yaw, 0, "XYZ");
-      if (this.mat) this.mat.uniforms.uFade.value = this.currentFade();
+      this.pivot.rotation.set(this.pitch + sway, this.yaw, 0, "XYZ");
+      if (this.mat) { this.mat.uniforms.uFade.value = this.currentFade(); this.mat.uniforms.uDist.value = d; }
+      if (this.ringMat) this.ringMat.uniforms.uT.value = REDUCED ? 0 : now * 0.001;
       this.renderer.render(this.scene, this.camera);
     }
   };

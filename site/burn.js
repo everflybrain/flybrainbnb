@@ -126,10 +126,11 @@
   function render() {
     var live = !!R.live && maxCount() > 0;
     $("burnClosed").hidden = live;
+    $("priceLine").hidden = !live;
     form.hidden = !live;
-    if (!R.deployed) $("closedWhy").textContent = "The coin hasn't launched and the registry contract isn't deployed yet. When the coin exists, its address and the price per neuron are set once in the registry and this panel opens.";
-    else if (!R.live) $("closedWhy").textContent = "The registry is deployed but the coin hasn't launched. When it does, its address and the price per neuron are set once in the registry and this panel opens.";
-    else if (maxCount() === 0) { $("burnClosed").querySelector(".closed").textContent = "every neuron is taken"; $("closedWhy").textContent = "All " + R.N.toLocaleString("en-US") + " neurons have names."; }
+    if (!R.deployed) { $("closedTitle").textContent = "Coming soon"; $("closedWhy").textContent = "The coin hasn't launched and the registry contract isn't deployed yet. When the coin exists, its address and the price per neuron are set once in the registry and this panel opens."; }
+    else if (!R.live) { $("closedTitle").textContent = "Coming soon"; $("closedWhy").textContent = "The registry is deployed but the coin hasn't launched. When it does, its address and the price per neuron are set once in the registry and this panel opens."; }
+    else if (maxCount() === 0) { $("closedTitle").textContent = "Every neuron is taken"; $("closedWhy").textContent = "All " + R.N.toLocaleString("en-US") + " neurons have names."; }
     if (!live) return;
     $("price").textContent = fmtUnits(R.price, R.decimals) + " " + R.symbol;
     $("left").textContent = R.remaining.toLocaleString("en-US");
@@ -139,8 +140,8 @@
   }
 
   function renderUnavailable(err) {
-    $("burnClosed").hidden = false; form.hidden = true;
-    $("burnClosed").querySelector(".closed").textContent = "can't read the registry";
+    $("burnClosed").hidden = false; form.hidden = true; $("priceLine").hidden = true;
+    $("closedTitle").textContent = "Can't read the registry";
     $("closedWhy").textContent = "BNB Chain RPC didn't answer, so the price can't be shown. Try again in a minute.";
     if (err) console.warn("registry read failed:", err && (err.shortMessage || err.message));
   }
@@ -230,9 +231,9 @@
   function showDone(res) {
     var box = $("burnDone");
     box.replaceChildren();
-    var h = document.createElement("h3"); h.textContent = "Burned. Claim #" + res.id; box.appendChild(h);
-    var p = document.createElement("p"); p.style.margin = "0";
-    var nm = document.createElement("b"); nm.className = "ut"; nm.style.unicodeBidi = "isolate"; nm.style.overflowWrap = "anywhere"; nm.textContent = tidy(res.name);
+    var h = document.createElement("h3"); h.textContent = "Burned · claim #" + res.id; box.appendChild(h);
+    var p = document.createElement("p");
+    var nm = document.createElement("b"); nm.className = "ut"; nm.textContent = tidy(res.name);
     p.append(nm, document.createTextNode(" now owns " + res.count.toLocaleString("en-US") + " neuron" + (res.count === 1 ? "" : "s") + ", marked in pale blue on the map."));
     box.appendChild(p);
     var ids = document.createElement("div"); ids.className = "ids";

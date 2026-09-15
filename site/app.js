@@ -1,9 +1,11 @@
-// Page wiring: brain API (status, neurons, frames, SSE), senses panel, owners wall, proof.
-// Every string that came from the chain or the API goes through textContent, never innerHTML.
+// Page wiring: brain API (status, neurons, frames, SSE), details drawer (senses, proof), owners
+// wall, hash rain. Every string that came from the chain or the API goes through textContent,
+// never innerHTML.
 (function () {
   "use strict";
   var C = window.FLY_CONFIG || {};
   var API = String(C.BRAIN_API || "").trim().replace(/\/+$/, "");
+  var RPC = String(C.RPC_URL || "").trim();
   var $ = function (id) { return document.getElementById(id); };
   var HASH_RE = /^0x[0-9a-fA-F]{64}$/;
 
@@ -19,7 +21,7 @@
     "token.buy": "token bought", "token.sell": "token sold", "token.burn": "token burned"
   };
 
-  var S = { online: false, status: null, channels: null, nb: null, lastW: -1, lastFrameAt: 0, pendingW: null, es: null, extras: null };
+  var S = { online: false, status: null, channels: null, nb: null, lastW: -1, lastFrameAt: 0, pendingW: null, es: null, extras: null, lastBlock: 0 };
 
   function el(tag, cls, text) {
     var e = document.createElement(tag);
@@ -77,7 +79,7 @@
     ul.replaceChildren(el("li", "empty", "brain offline"));
   }
 
-  // ---------------- senses ----------------
+  // ---------------- senses (details drawer) ----------------
   function renderInputs(frame) {
     var ul = $("inputs");
     var chans = (S.channels && S.channels.inputs) || [];
@@ -100,7 +102,7 @@
       else val = fmtRaw(c.id, f.raw) + " · z " + (isFinite(f.z) ? Number(f.z).toFixed(1) : "-") + " · " + Math.round(Number(f.rate_hz) || 0) + " Hz";
       var cells = Array.isArray(c.neurons) ? c.neurons.length : null;
       var grp = el("span", "grp", "→ " + (GROUP_NAMES[c.id] || String(c.source || c.selector || "")) + (cells ? ", " + intf.format(cells) + " cells" : ""));
-      var bar = el("span", "bar"); var b = el("b"); b.style.width = Math.min(100, (Number(f.rate_hz) || 0) / maxHz * 100) + "%"; bar.appendChild(b);
+      var bar = el("span", "meter"); var b = el("b"); b.style.width = Math.min(100, (Number(f.rate_hz) || 0) / maxHz * 100) + "%"; bar.appendChild(b);
       li.append(nm, el("span", "val", val), grp, bar);
       ul.appendChild(li);
     });
@@ -108,11 +110,41 @@
     $("warm").hidden = !(anyWarm || (S.status && S.status.warm));
   }
 
+  // readout: a value that changed gets a short tick
+  function setNum(id, text) {
+    var d = $(id);
+    if (d.textContent === text) return;
+    d.textContent = text;
+    d.classList.remove("tick");
+    void d.offsetWidth;
+    d.classList.add("tick");
+  }
   function renderStats(f) {
     $("stats").hidden = false;
-    $("sActive").textContent = intf.format(f.active_neurons || 0);
-    $("sMean").textContent = (isFinite(f.mean_hz) ? Number(f.mean_hz).toFixed(2) : "-") + " Hz";
-    $("sBlock").textContent = f.toBlock ? intf.format(f.toBlock) : "-";
+    setNum("sActive", intf.format(f.active_neurons || 0));
+    setNum("sMean", (isFinite(f.mean_hz) ? Number(f.mean_hz).toFixed(2) : "-") + " Hz");
+    setNum("sBlock", f.toBlock ? intf.format(f.toBlock) : "-");
+  }
+
+  // ---------------- hash rain ----------------
+  // Real hashes only: the block the brain just ran on (its hash and its transactions, read from
+  // the chain), and the brain's own leaf/state hashes. A new block brightens the rain briefly.
+  function feedBlock(blockNo, extra) {
+    if (!window.Rain) return;
+    if (!RPC || !blockNo || blockNo === S.lastBlock) { Rain.feed(extra, false); return; }
+    S.lastBlock = blockNo;
+    var ctl = new AbortController();
+    var t = setTimeout(function () { ctl.abort(); }, 10000);
+    fetch(RPC, {
+      method: "POST", signal: ctl.signal, headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "eth_getBlockByNumber", params: ["0x" + Number(blockNo).toString(16), false] })
+    }).then(function (r) { clearTimeout(t); return r.json(); }).then(function (j) {
+      var b = j && j.result;
+      var list = [];
+      if (b && HASH_RE.test(String(b.hash || ""))) list.push(b.hash);
+      (b && Array.isArray(b.transactions) ? b.transactions : []).forEach(function (h) { if (typeof h === "string" && HASH_RE.test(h)) list.push(h); });
+      Rain.feed(list.slice(0, 48).concat(extra || []), true);
+    }).catch(function () { clearTimeout(t); Rain.feed(extra || [], true); });
   }
 
   // ---------------- frames ----------------
@@ -121,9 +153,10 @@
     S.lastFrameAt = Date.now();
     S.online = true;
     $("offline").hidden = true;
-    setPill("live", "live · window " + f.window);
+    setPill("live", "live");
     renderInputs(f);
     renderStats(f);
+    feedBlock(Number(f.toBlock) || 0, f.leaf ? [f.leaf] : []);
     if (f.window <= S.lastW) return;
     if (!Heatmap.ready) { S.pendingW = f.window; return; }
     loadCounts(f.window);
@@ -131,7 +164,7 @@
   function loadCounts(w) {
     return fetchT("/frame.bin?w=" + encodeURIComponent(w), true).then(function (buf) {
       if (w <= S.lastW) return;
-      if (Heatmap.applyCounts(new Uint8Array(buf))) S.lastW = w;
+      if (Heatmap.applyCounts(new Uint8Array(buf))) { S.lastW = w; refreshCardState(); }
     }).catch(function (e) { console.warn("frame.bin", e.message); });
   }
 
@@ -140,7 +173,13 @@
     var es = S.es = new EventSource(API + "/stream");
     es.addEventListener("frame", function (e) { try { onFrame(JSON.parse(e.data)); } catch (x) { /* bad frame */ } });
     es.addEventListener("heartbeat", function (e) {
-      try { if (S.status) { S.status.lastHeartbeat = JSON.parse(e.data); renderProof(); } } catch (x) { /* ignore */ }
+      try {
+        if (S.status) {
+          var hb = JSON.parse(e.data);
+          S.status.lastHeartbeat = hb; renderProof();
+          if (window.Rain) Rain.feed([hb.stateHash, hb.spikeRoot, hb.inputHash, hb.tx], false);
+        }
+      } catch (x) { /* ignore */ }
     });
     es.addEventListener("claim", function () {
       loadOwners(true);
@@ -160,6 +199,8 @@
       renderProof();
       renderInputs(null);
       setPill("live", "connecting");
+      var s = S.status || {}, hb = s.lastHeartbeat || {};
+      if (window.Rain) Rain.feed([s.connectomeHash, s.neuronTableHash, s.channelsHash, hb.stateHash, hb.spikeRoot, hb.inputHash, hb.tx], false);
       openStream();
       var frame = fetchT("/frame").then(onFrame).catch(function () {});
       if (!S.nb) {
@@ -189,10 +230,13 @@
     if (S.status) { openStream(); fetchT("/frame").then(onFrame).catch(function () {}); }
   });
 
-  // ---------------- neuron card ----------------
+  // ---------------- neuron detail panel ----------------
+  var cardId = -1;
   function showNeuron(id) {
     var card = $("ncard");
-    if (id < 0 || !S.nb) { card.hidden = true; return; }
+    if (id < 0 || !S.nb) { closeCard(); return; }
+    cardId = id;
+    Heatmap.setPick(id);
     var names = (S.channels && S.channels.superclasses) || [];
     var chans = (S.channels && S.channels.inputs) || [];
     var g = S.nb.group[id], fl = S.nb.flags[id];
@@ -201,36 +245,56 @@
       side: fl & 2 ? "L" : fl & 4 ? "R" : fl & 8 ? "M" : null, imputed: !!(fl & 1)
     };
     drawCard(base, null, true);
-    fetchT("/neuron/" + id).then(function (d) { if (Number(d.id) === id && !card.hidden) drawCard(Object.assign(base, d), d.claim, false); })
-      .catch(function () { if (!card.hidden) drawCard(base, null, false); });
+    fetchT("/neuron/" + id).then(function (d) { if (Number(d.id) === id && cardId === id && !card.hidden) drawCard(Object.assign(base, d), d.claim, false); })
+      .catch(function () { if (cardId === id && !card.hidden) drawCard(base, null, false); });
+  }
+  function closeCard() {
+    $("ncard").hidden = true;
+    cardId = -1;
+    Heatmap.setPick(-1);
+  }
+  function stateRow(id) {
+    var n = Heatmap.firedCount(id);
+    var st = el("span", "state");
+    st.appendChild(el("i"));
+    if (n === null) st.appendChild(document.createTextNode(S.online ? "waiting for a window" : "no window yet"));
+    else if (n > 0) { st.classList.add("on"); st.appendChild(document.createTextNode("fired " + n + "× in the last window")); }
+    else st.appendChild(document.createTextNode("quiet this window"));
+    return st;
+  }
+  function refreshCardState() {
+    var card = $("ncard");
+    if (card.hidden || cardId < 0) return;
+    var old = card.querySelector(".state");
+    if (old) old.replaceWith(stateRow(cardId));
   }
   function drawCard(n, claim, loading) {
     var card = $("ncard");
     card.replaceChildren();
     var x = el("button", "x", "×"); x.type = "button"; x.setAttribute("aria-label", "Close");
-    x.onclick = function () { card.hidden = true; };
-    card.append(x, el("h3", null, "Neuron #" + n.id));
+    x.onclick = closeCard;
+    card.append(x, el("p", "k", "neuron"), el("h3", null, "#" + n.id), stateRow(n.id));
     var dl = el("dl");
-    function row(k, v) { if (v === null || v === undefined || v === "") return; dl.append(el("dt", null, k), el("dd", null, v)); }
-    row("type", n.type);
+    function row(k, v, mono) { if (v === null || v === undefined || v === "") return; dl.append(el("dt", null, k), el("dd", mono ? "mono" : null, v)); }
+    row("type", n.type, true);
     row("class", n.superclass ? String(n.superclass).replace(/_/g, " ") : null);
     row("side", { L: "left", R: "right", M: "midline" }[n.side] || n.side);
-    row("body id", n.bodyId);
+    row("body id", n.bodyId, true);
     if (n.group) row("sense", (LABELS[n.group] || n.group) + " → " + (GROUP_NAMES[n.group] || ""));
     if (n.imputed) row("position", "placed near its targets: layout, not anatomy");
     card.appendChild(dl);
     if (claim) {
       var own = el("div", "own");
-      var nm = el("div", "ut"); nm.style.fontWeight = "650"; nm.textContent = Burn.tidy(claim.name);
-      own.append(el("div", "note", "owned by"), nm);
+      var nm = el("div", "ut nm"); nm.textContent = Burn.tidy(claim.name);
+      own.append(el("p", "k", "owned by"), nm);
       if (claim.note) { var nt = el("div", "ut note"); nt.textContent = Burn.tidy(claim.note); own.appendChild(nt); }
-      var meta = el("div", "note");
+      var meta = el("div", "meta");
       if (Burn.validAddress(claim.owner)) meta.appendChild(link(Burn.explorer + "/address/" + claim.owner, claim.owner.slice(0, 6) + "…" + claim.owner.slice(-4)));
       meta.appendChild(document.createTextNode(" · claim #" + claim.id));
       own.appendChild(meta);
       card.appendChild(own);
     } else if (!loading) {
-      card.appendChild(el("div", "own note", API && S.online ? "No name on this neuron yet." : "Owner unknown while the brain is offline."));
+      card.appendChild(el("div", "quiet", API && S.online ? "No name on this neuron yet." : "Owner unknown while the brain is offline."));
     }
     card.hidden = false;
   }
@@ -275,8 +339,10 @@
 
   function ownerCard(c) {
     var li = el("li");
-    li.appendChild(el("div", "nm", Burn.tidy(c.name)));
-    if (c.note) li.appendChild(el("div", "nt", Burn.tidy(c.note)));
+    var who = el("div", "who");
+    who.appendChild(el("div", "nm", Burn.tidy(c.name)));
+    if (c.note) who.appendChild(el("div", "nt", Burn.tidy(c.note)));
+    li.appendChild(who);
     var meta = el("div", "meta");
     var cnt = Number(c.count) || 0;
     meta.appendChild(el("span", null, intf.format(cnt) + (cnt === 1 ? " neuron" : " neurons")));
@@ -287,18 +353,20 @@
     meta.appendChild(el("span", null, "#" + Number(c.id)));
     li.appendChild(meta);
     if (st.deployed && st.N && cnt > 0) {
-      var b = el("button", "show", "show on the map"); b.type = "button";
+      var b = el("button", "show", "show on map"); b.type = "button";
       b.onclick = function () {
         var ids = Burn.neuronIds(Number(c.start), cnt);
         if (Heatmap.ready) Heatmap.highlight(ids); else pendingHighlight = ids;
+        Array.prototype.forEach.call($("wall").children, function (row) { row.classList.remove("active"); });
+        li.classList.add("active");
         $("stage").scrollIntoView({ behavior: Heatmap.REDUCED ? "auto" : "smooth", block: "start" });
       };
-      li.insertBefore(b, meta);
+      li.appendChild(b);
     }
     return li;
   }
 
-  // ---------------- proof ----------------
+  // ---------------- proof (details drawer) ----------------
   function renderProof() {
     var dl = $("proofList");
     dl.replaceChildren();
@@ -349,6 +417,31 @@
     row("Source and hash definitions", link(repo, repo.replace(/^https:\/\//, "")));
   }
 
+  // ---------------- details drawer ----------------
+  var drawerOpener = null;
+  function openDrawer(sectionId, opener) {
+    var d = $("drawer");
+    drawerOpener = opener || document.activeElement;
+    d.classList.add("open"); $("scrim").classList.add("open");
+    d.setAttribute("aria-hidden", "false");
+    $("detailsBtn").setAttribute("aria-expanded", "true");
+    var target = sectionId ? $(sectionId) : null;
+    setTimeout(function () {
+      if (target) target.scrollIntoView({ behavior: Heatmap.REDUCED ? "auto" : "smooth", block: "start" });
+      else $("drawer").querySelector(".drawer-body").scrollTop = 0;
+      $("drawerClose").focus({ preventScroll: true });
+    }, Heatmap.REDUCED ? 0 : 120);
+  }
+  function closeDrawer() {
+    var d = $("drawer");
+    if (!d.classList.contains("open")) return;
+    d.classList.remove("open"); $("scrim").classList.remove("open");
+    d.setAttribute("aria-hidden", "true");
+    $("detailsBtn").setAttribute("aria-expanded", "false");
+    if (drawerOpener && drawerOpener.focus) drawerOpener.focus({ preventScroll: true });
+    drawerOpener = null;
+  }
+
   // ---------------- boot ----------------
   function boot() {
     $("zoomIn").onclick = function () { Heatmap.zoom(1 / 1.2); };
@@ -359,6 +452,26 @@
     $("more").onclick = function () { loadOwners(false); };
     var repoLink = $("repoLink"); if (C.REPO) { repoLink.href = C.REPO; repoLink.textContent = C.REPO.replace(/^https:\/\//, ""); }
 
+    $("detailsBtn").onclick = function () { if ($("drawer").classList.contains("open")) closeDrawer(); else openDrawer(null, this); };
+    $("drawerClose").onclick = closeDrawer;
+    $("scrim").onclick = closeDrawer;
+    Array.prototype.forEach.call(document.querySelectorAll("[data-open-drawer]"), function (b) {
+      b.addEventListener("click", function () { openDrawer(b.getAttribute("data-open-drawer"), b); });
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key !== "Escape") return;
+      if ($("drawer").classList.contains("open")) closeDrawer();
+      else if (!$("ncard").hidden) closeCard();
+    });
+    // first-paint reveals are CSS; once they are due, drop the class so a tab that was opened in
+    // the background (where animations may not advance) never stays blank
+    setTimeout(function () { Array.prototype.forEach.call(document.querySelectorAll(".reveal"), function (e) { e.classList.remove("reveal"); }); }, 1800);
+    var top = $("top");
+    function onScroll() { top.classList.toggle("scrolled", (window.scrollY || 0) > 24); }
+    window.addEventListener("scroll", onScroll, { passive: true });
+    onScroll();
+
+    if (window.Rain) { try { Rain.init($("rain")); } catch (e) { console.warn(e); } }
     try {
       Heatmap.init($("brain"));
       Heatmap.onPick = showNeuron;
