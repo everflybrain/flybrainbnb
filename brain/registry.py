@@ -2,7 +2,9 @@
 FlyBrainRegistry reads (claims, token, price, latest beat) and the heartbeat sender.
 
 The sender is OFF unless REGISTRY_ADDRESS, OPERATOR_PRIVATE_KEY and HEARTBEAT=1 are all
-set. The key is read from the environment only, used only to sign, and never logged.
+set, it has exactly one RPC endpoint (REGISTRY_RPC_URL, else BSC_RPC_URL; never the public
+fallback) and EPOCH_S is 600. Before signing it checks eth_chainId == CHAIN_ID. The key is read
+from the environment only, used only to sign, and never logged.
 """
 import json
 import os
@@ -13,6 +15,8 @@ from pathlib import Path
 from eth_abi import decode as abi_decode
 
 from chain import selector
+
+EPOCH_S = 600
 
 CLAIM_TUPLE = "(address,uint32,uint32,uint64,uint256,bytes,bytes)"  # strings read as bytes
 
@@ -119,13 +123,24 @@ class Registry:
 
 
 class Heartbeat:
+    """rpc must be a single-endpoint chain.Rpc (or None): a heartbeat is never sent anywhere else."""
+
     def __init__(self, rpc, env=None):
         env = os.environ if env is None else env
         self.rpc = rpc
         self.registry = (env.get("REGISTRY_ADDRESS") or "").strip() or None
         self._key = (env.get("OPERATOR_PRIVATE_KEY") or "").strip() or None
         self.chain_id = int(env.get("CHAIN_ID") or 56)
-        self.enabled = bool(self.registry and self._key and env.get("HEARTBEAT") == "1")
+        self.epoch_s = int(env.get("EPOCH_S") or EPOCH_S)
+        wanted = bool(self.registry and self._key and env.get("HEARTBEAT") == "1")
+        self.off_reason = None
+        if wanted and self.epoch_s != EPOCH_S:
+            self.off_reason = f"EPOCH_S={self.epoch_s}: the registry only accepts 600 s epochs"
+        elif wanted and (rpc is None or len(getattr(rpc, "urls", [None])) != 1):
+            self.off_reason = "heartbeats need exactly one RPC endpoint (REGISTRY_RPC_URL or BSC_RPC_URL)"
+        self.enabled = wanted and self.off_reason is None
+        if self.off_reason:
+            print(f"heartbeats OFF: {self.off_reason}", flush=True)
         self.address = None
         if self.enabled:
             from eth_account import Account
@@ -147,6 +162,9 @@ class Heartbeat:
         """Returns the tx hash, or None when disabled."""
         if not self.enabled:
             return None
+        got = int(self.rpc.call("eth_chainId", []), 16)
+        if got != self.chain_id:
+            raise RuntimeError(f"RPC chain id {got} != CHAIN_ID {self.chain_id}; heartbeat not signed")
         nonce = int(self.rpc.call("eth_getTransactionCount", [self.address, "pending"]), 16)
         gp = max(int(self.rpc.call("eth_gasPrice", []), 16), 50_000_000)   # >= 0.05 gwei
         raw = self.build(epoch, state_hash, spike_root, input_hash, nonce, gp)

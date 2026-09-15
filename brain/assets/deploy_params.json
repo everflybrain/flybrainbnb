@@ -1,8 +1,8 @@
 {
  "neuronCount": 165122,
  "connectomeHash": "0x24d0df1a83cefeff694d4652102a83dc15eeaa247ab90f4913ba3c02825c907c",
- "neuronTableHash": "0x0a9adc56ae0dbd5291fbb542d09a000ddbe312b4aed732cf29dd991ddbb84210",
- "channelsHash": "0xc758ff6e043be150b1401c02e11e9d768664fb8fb725fc6d5830649d59ff076e",
+ "neuronTableHash": "0x8be6b24c27f4e4c39f5c5bbb8190f7c85587290817833ff0bb4c1d44836a2241",
+ "channelsHash": "0x4188ac3a893b72bb78e1dca4b458f5377435ab9adb059d1039ee75ccc2e996de",
  "permMul": 101275,
  "permAdd": 52805
 }

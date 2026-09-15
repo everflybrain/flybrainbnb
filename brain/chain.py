@@ -37,7 +37,9 @@ MIN_TRANSFER_USD = 1.0
 CAP_FRAC = 0.02
 CAP_FLOOR = {"usdt": 10_000.0, "usdc": 10_000.0, "dex.buy": 5_000.0, "dex.sell": 5_000.0,
              "crowd": 1e-4}   # crowd: BNB of fees per sender; token: 1% of supply (runtime)
-MAD_FLOOR = {"heat": 0.01}
+# heat in gwei. whale is a small integer count: most windows repeat the same value, so its MAD
+# is often 0 and one extra transfer would score as a huge z (80 Hz). Floor = one transfer.
+MAD_FLOOR = {"heat": 0.01, "whale": 1.0}
 
 GATING = dict(Z_GATE=2.0, R_MIN=10.0, K=10.0, MAX_HZ=80.0, BUF=360, WARM=30)
 
@@ -72,6 +74,9 @@ def _i(word):
 
 class RpcError(Exception):
     pass
+
+
+NO_FAILOVER = ("eth_sendRawTransaction",)
 
 
 class Rpc:
@@ -109,10 +114,18 @@ class Rpc:
 
     def request(self, payload):
         last = None
+        method = payload.get("method") if isinstance(payload, dict) else None
+        if method in NO_FAILOVER:
+            # A signed transaction goes to the first configured endpoint only: a rejection is an
+            # answer, not an outage, and must never be re-broadcast to another (possibly mainnet) node.
+            out = self._post(self.urls[0], payload)
+            if isinstance(out, dict) and "error" in out:
+                raise RpcError(str(out["error"])[:200])
+            return out
         for url in self._order():
             try:
                 out = self._post(url, payload)
-                if isinstance(out, dict) and "error" in out and payload.get("method") != "eth_call":
+                if isinstance(out, dict) and "error" in out and method != "eth_call":
                     raise RpcError(str(out["error"])[:200])
                 self.fails[url] = 0
                 self.last_ok = time.time()

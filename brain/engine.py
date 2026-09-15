@@ -90,7 +90,10 @@ class Engine:
         self.reg_rpc = chain.Rpc([cfg.registry_rpc]) if cfg.registry_rpc else self.rpc
         if cfg.epoch_s != EPOCH_S:
             self.gating_overrides["EPOCH_S"] = cfg.epoch_s
-        self.heartbeat = Heartbeat(self.reg_rpc, cfg.env)
+        # Heartbeats get one endpoint and no fallback (the senses Rpc appends public mainnet).
+        senses_url = (cfg.env.get("BSC_RPC_URL") or "").strip() or None
+        hb_rpc = self.reg_rpc if cfg.registry_rpc else (chain.Rpc([senses_url]) if senses_url else None)
+        self.heartbeat = Heartbeat(hb_rpc, cfg.env)
         self.listeners = []
         self.registry = Registry(self.reg_rpc, cfg.registry, cfg.data_dir,
                                  on_claim=lambda c: self.emit("claim", c))

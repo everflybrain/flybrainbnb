@@ -151,3 +151,74 @@ def test_registry_rpc_is_separate_from_senses_and_epoch_length_override(make_eng
     default = make_engine(FakeRpc())
     assert default.reg_rpc is default.rpc and default.cfg.epoch_s == 600
     assert "EPOCH_S" not in default.gating_overrides
+
+
+class _FakeNode:
+    """Local JSON-RPC stub: reports chain_id, rejects or accepts eth_sendRawTransaction."""
+
+    def __init__(self, chain_id, reject_send):
+        import threading
+        from http.server import BaseHTTPRequestHandler, HTTPServer
+        node = self
+        self.seen = []
+
+        class Hd(BaseHTTPRequestHandler):
+            def log_message(self, *a):
+                pass
+
+            def do_POST(self):
+                body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                m = body["method"]
+                node.seen.append(m)
+                res = {"eth_chainId": hex(chain_id), "eth_getTransactionCount": "0x0",
+                       "eth_gasPrice": hex(10**8), "eth_sendRawTransaction": "0x" + "ab" * 32}.get(m, "0x0")
+                out = {"jsonrpc": "2.0", "id": body["id"], "result": res}
+                if m == "eth_sendRawTransaction" and reject_send:
+                    out = {"jsonrpc": "2.0", "id": body["id"], "error": {"code": -32000, "message": "rejected"}}
+                b = json.dumps(out).encode()
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(b)))
+                self.end_headers()
+                self.wfile.write(b)
+
+        self.server = HTTPServer(("127.0.0.1", 0), Hd)
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+        self.url = f"http://127.0.0.1:{self.server.server_address[1]}"
+
+
+def test_heartbeat_never_reaches_the_public_fallback(make_engine, monkeypatch):
+    """REGISTRY_RPC_URL unset + a local BSC_RPC_URL: a rejected or wrong-chain heartbeat must not
+    be re-broadcast to chain.DEFAULT_RPC (public mainnet)."""
+    import pytest
+    import chain
+    local, mainnet = _FakeNode(31337, reject_send=True), _FakeNode(56, reject_send=False)
+    monkeypatch.setattr(chain, "DEFAULT_RPC", mainnet.url)
+    key = "0x" + "11" * 32                                   # throwaway test key, not a wallet
+    env = {"REGISTRY_ADDRESS": "0x" + "22" * 20, "OPERATOR_PRIVATE_KEY": key, "HEARTBEAT": "1",
+           "BSC_RPC_URL": local.url}
+    eng = make_engine(chain.Rpc([local.url, mainnet.url]), env=env)   # senses rpc keeps a fallback
+    assert eng.heartbeat.enabled and eng.heartbeat.rpc.urls == [local.url]
+    with pytest.raises(RuntimeError, match="chain id"):                # CHAIN_ID defaults to 56
+        eng.heartbeat.send(7, b"\x01" * 32, b"\x02" * 32, b"\x03" * 32)
+    assert "eth_sendRawTransaction" not in local.seen
+
+    eng = make_engine(FakeRpc(), env={**env, "CHAIN_ID": "31337"})
+    with pytest.raises(chain.RpcError):
+        eng.heartbeat.send(7, b"\x01" * 32, b"\x02" * 32, b"\x03" * 32)
+    assert local.seen.count("eth_sendRawTransaction") == 1
+    # even a multi-endpoint Rpc never fails a signed tx over to the next endpoint
+    with pytest.raises(chain.RpcError):
+        chain.Rpc([local.url, mainnet.url]).call("eth_sendRawTransaction", ["0x00"])
+    assert mainnet.seen == []
+
+    no_url = make_engine(FakeRpc(), env={k: v for k, v in env.items() if k != "BSC_RPC_URL"})
+    assert no_url.heartbeat.enabled is False and no_url.heartbeat._key is None
+
+
+def test_heartbeat_refuses_non_600s_epochs(make_engine):
+    env = {"REGISTRY_ADDRESS": "0x" + "22" * 20, "OPERATOR_PRIVATE_KEY": "0x" + "11" * 32, "HEARTBEAT": "1",
+           "REGISTRY_RPC_URL": "http://127.0.0.1:9", "EPOCH_S": "60"}
+    eng = make_engine(FakeRpc(), env=env)
+    assert eng.heartbeat.enabled is False and "EPOCH_S" in eng.heartbeat.off_reason
+    assert make_engine(FakeRpc(), env={**env, "EPOCH_S": "600"}).heartbeat.enabled is True

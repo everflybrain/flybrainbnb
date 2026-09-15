@@ -107,3 +107,14 @@ def test_token_buy_sell_burn_classification():
     logs = [_transfer(tok, pool, u, 100), _transfer(tok, u, pool, 40), _transfer(tok, u, chain.DEAD, 7)]
     raw, _ = chain.extract([{"transactions": []}], {}, logs, gates, token)
     assert (raw["token.buy"], raw["token.sell"], raw["token.burn"]) == (100, 40, 7)
+
+
+def test_whale_count_has_a_one_transfer_mad_floor():
+    # live failure: most windows repeat one small count, MAD 0 -> any extra whale scored 80 Hz
+    buf = [0.0] * 20 + [1.0] * 10                            # median 0, MAD 0
+    assert chain.median_mad(buf, "whale")[1] == 1.0
+    assert chain.gate(1.0, buf, "whale", 80.0, G)[1] == 0.0  # one large transfer: below Z_GATE
+    assert chain.gate(2.0, buf, "whale", 80.0, G)[1] == G["R_MIN"]
+    assert chain.gate(5.0, buf, "whale", 80.0, G)[1] == pytest.approx(G["R_MIN"] + 3 * G["K"])
+    ones = [1.0] * 30                                        # median 1, MAD 0
+    assert chain.gate(2.0, ones, "whale", 80.0, G)[1] == 0.0

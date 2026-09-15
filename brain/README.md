@@ -57,11 +57,13 @@ BRAIN_AUTOSTART=1 DATA_DIR=./data/runtime py -m uvicorn server:app --port 8000
 Env: `BSC_RPC_URL` (default https://bsc-rpc.publicnode.com), `RPC_FALLBACKS`, `CORS_ORIGINS`
 (comma list of site origins; empty = no cross-origin access), `REGISTRY_ADDRESS`,
 `TOKEN_ADDRESS`, `TOKEN_POOLS`, `OPERATOR_PRIVATE_KEY`, `HEARTBEAT` (1 to send), `CHAIN_ID`
-(56), `REGISTRY_RPC_URL` (registry reads and heartbeats; default = the senses RPC), `BIO_MS` (100), `GAIN` (override; default from channels.json), `DATA_DIR` (/data in
+(56), `REGISTRY_RPC_URL` (registry reads and heartbeats; default: reads use the senses RPC, heartbeats use `BSC_RPC_URL` only), `BIO_MS` (100), `GAIN` (override; default from channels.json), `DATA_DIR` (/data in
 Docker), `PORT`, `FINALITY_DELAY_MS` (2500). `GATE_WARM` and `EPOCH_S` (default 600) are for local testing only.
 
 Heartbeats are sent only when `REGISTRY_ADDRESS`, `OPERATOR_PRIVATE_KEY` and `HEARTBEAT=1`
-are all set. Set Railway variables with PowerShell (Git Bash rewrites `/data`).
+are all set, `EPOCH_S` is 600 and the heartbeat RPC is one endpoint (`REGISTRY_RPC_URL`, else
+`BSC_RPC_URL`, never the public fallback) whose `eth_chainId` equals `CHAIN_ID`. A rejected
+transaction is never re-sent to another endpoint. Set Railway variables with PowerShell (Git Bash rewrites `/data`).
 
 ## Calibration (2026-09-15, this PC)
 
