@@ -24,7 +24,12 @@ module.exports = {
   mocha: { timeout: 120000 },
   networks: {
     // GUARD_TEST_CHAIN_ID lets the in-memory chain pretend to be 56 to test the mainnet guard offline.
-    hardhat: process.env.GUARD_TEST_CHAIN_ID ? { chainId: Number(process.env.GUARD_TEST_CHAIN_ID) } : {},
+    hardhat: {
+      ...(process.env.GUARD_TEST_CHAIN_ID ? { chainId: Number(process.env.GUARD_TEST_CHAIN_ID) } : {}),
+      // Needed when forking BNB Smart Chain (scripts/fork-check-token.js): Hardhat has no
+      // built-in hardfork history for chain 56, so run every forked block with Cancun rules.
+      chains: { 56: { hardforkHistory: { cancun: 0 } } },
+    },
     localhost: { url: "http://127.0.0.1:8545" },
     // No accounts here: scripts build the signer from .env themselves, behind the chain-56 guard.
     bsc: { url: env.BSC_RPC_URL || "https://bsc-rpc.publicnode.com", chainId: 56 },
