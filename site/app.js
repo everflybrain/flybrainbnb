@@ -413,7 +413,7 @@
     if (S.status) {
       row("Simulation", (Number(s.bio_ms) || 100) + " ms of brain time per 12 s window, global synaptic scale " + (isFinite(s.gain) ? s.gain : "-"));
     }
-    var repo = C.REPO || "https://github.com/everflybrain/flybrainbnb";
+    var repo = C.REPO || "https://github.com/fruitflydev/everflybrain";
     row("Source and hash definitions", link(repo, repo.replace(/^https:\/\//, "")));
   }
 

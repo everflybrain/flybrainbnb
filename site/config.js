@@ -6,5 +6,5 @@ window.FLY_CONFIG = {
   CHAIN_ID: 56,
   RPC_URL: "https://bsc-rpc.publicnode.com",
   EXPLORER: "https://bscscan.com",
-  REPO: "https://github.com/everflybrain/flybrainbnb"
+  REPO: "https://github.com/fruitflydev/everflybrain"
 };
