@@ -1,0 +1,758 @@
+[
+ {
+  "inputs": [
+   {
+    "internalType": "uint32",
+    "name": "neuronCount_",
+    "type": "uint32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "connectomeHash_",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "neuronTableHash_",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "address",
+    "name": "operator_",
+    "type": "address"
+   },
+   {
+    "internalType": "uint256",
+    "name": "permMul_",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "permAdd_",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "nonpayable",
+  "type": "constructor"
+ },
+ {
+  "inputs": [],
+  "name": "BadCount",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "BadName",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "BadNote",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "BadParams",
+  "type": "error"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint256",
+    "name": "expected",
+    "type": "uint256"
+   },
+   {
+    "internalType": "uint256",
+    "name": "received",
+    "type": "uint256"
+   }
+  ],
+  "name": "BurnMismatch",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "EpochNotIncreasing",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "NotAContract",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "NotOperator",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "NotOwner",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "OutOfRange",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "Reentrancy",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "SoldOut",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "TokenAlreadySet",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "TokenNotSet",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "TransferFailed",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "ZeroAddress",
+  "type": "error"
+ },
+ {
+  "inputs": [],
+  "name": "ZeroPrice",
+  "type": "error"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "uint256",
+    "name": "claimId",
+    "type": "uint256"
+   },
+   {
+    "indexed": true,
+    "internalType": "address",
+    "name": "owner",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "internalType": "uint32",
+    "name": "start",
+    "type": "uint32"
+   },
+   {
+    "indexed": false,
+    "internalType": "uint32",
+    "name": "count",
+    "type": "uint32"
+   },
+   {
+    "indexed": false,
+    "internalType": "uint256",
+    "name": "burned",
+    "type": "uint256"
+   },
+   {
+    "indexed": false,
+    "internalType": "string",
+    "name": "name",
+    "type": "string"
+   },
+   {
+    "indexed": false,
+    "internalType": "string",
+    "name": "note",
+    "type": "string"
+   }
+  ],
+  "name": "Claimed",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": true,
+    "internalType": "uint64",
+    "name": "epoch",
+    "type": "uint64"
+   },
+   {
+    "indexed": false,
+    "internalType": "bytes32",
+    "name": "stateHash",
+    "type": "bytes32"
+   },
+   {
+    "indexed": false,
+    "internalType": "bytes32",
+    "name": "spikeRoot",
+    "type": "bytes32"
+   },
+   {
+    "indexed": false,
+    "internalType": "bytes32",
+    "name": "inputHash",
+    "type": "bytes32"
+   }
+  ],
+  "name": "Heartbeat",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "internalType": "address",
+    "name": "operator",
+    "type": "address"
+   }
+  ],
+  "name": "OperatorSet",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "internalType": "address",
+    "name": "owner",
+    "type": "address"
+   }
+  ],
+  "name": "OwnerSet",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "internalType": "uint256",
+    "name": "pricePerNeuron",
+    "type": "uint256"
+   }
+  ],
+  "name": "PriceSet",
+  "type": "event"
+ },
+ {
+  "anonymous": false,
+  "inputs": [
+   {
+    "indexed": false,
+    "internalType": "address",
+    "name": "token",
+    "type": "address"
+   },
+   {
+    "indexed": false,
+    "internalType": "uint256",
+    "name": "pricePerNeuron",
+    "type": "uint256"
+   }
+  ],
+  "name": "TokenSet",
+  "type": "event"
+ },
+ {
+  "inputs": [],
+  "name": "DEAD",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "MAX_NAME_BYTES",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "MAX_NOTE_BYTES",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "MAX_PER_CLAIM",
+  "outputs": [
+   {
+    "internalType": "uint32",
+    "name": "",
+    "type": "uint32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint32",
+    "name": "count",
+    "type": "uint32"
+   },
+   {
+    "internalType": "string",
+    "name": "name",
+    "type": "string"
+   },
+   {
+    "internalType": "string",
+    "name": "note",
+    "type": "string"
+   }
+  ],
+  "name": "claim",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "claimId",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint32",
+    "name": "neuron",
+    "type": "uint32"
+   }
+  ],
+  "name": "claimOfNeuron",
+  "outputs": [
+   {
+    "internalType": "bool",
+    "name": "claimed",
+    "type": "bool"
+   },
+   {
+    "internalType": "uint256",
+    "name": "claimId",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "claimedNeurons",
+  "outputs": [
+   {
+    "internalType": "uint32",
+    "name": "",
+    "type": "uint32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "claimsCount",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "connectomeHash",
+  "outputs": [
+   {
+    "internalType": "bytes32",
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint256",
+    "name": "id",
+    "type": "uint256"
+   }
+  ],
+  "name": "getClaim",
+  "outputs": [
+   {
+    "components": [
+     {
+      "internalType": "address",
+      "name": "owner",
+      "type": "address"
+     },
+     {
+      "internalType": "uint32",
+      "name": "start",
+      "type": "uint32"
+     },
+     {
+      "internalType": "uint32",
+      "name": "count",
+      "type": "uint32"
+     },
+     {
+      "internalType": "uint64",
+      "name": "time",
+      "type": "uint64"
+     },
+     {
+      "internalType": "uint256",
+      "name": "burned",
+      "type": "uint256"
+     },
+     {
+      "internalType": "string",
+      "name": "name",
+      "type": "string"
+     },
+     {
+      "internalType": "string",
+      "name": "note",
+      "type": "string"
+     }
+    ],
+    "internalType": "struct FlyBrainRegistry.Claim",
+    "name": "",
+    "type": "tuple"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint64",
+    "name": "epoch",
+    "type": "uint64"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "stateHash",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "spikeRoot",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "inputHash",
+    "type": "bytes32"
+   }
+  ],
+  "name": "heartbeat",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint32",
+    "name": "neuron",
+    "type": "uint32"
+   }
+  ],
+  "name": "indexOfNeuron",
+  "outputs": [
+   {
+    "internalType": "uint32",
+    "name": "",
+    "type": "uint32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "latest",
+  "outputs": [
+   {
+    "internalType": "uint64",
+    "name": "epoch",
+    "type": "uint64"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "stateHash",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "spikeRoot",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "bytes32",
+    "name": "inputHash",
+    "type": "bytes32"
+   },
+   {
+    "internalType": "uint64",
+    "name": "time",
+    "type": "uint64"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint32",
+    "name": "index",
+    "type": "uint32"
+   }
+  ],
+  "name": "neuronAt",
+  "outputs": [
+   {
+    "internalType": "uint32",
+    "name": "",
+    "type": "uint32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "neuronCount",
+  "outputs": [
+   {
+    "internalType": "uint32",
+    "name": "",
+    "type": "uint32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "neuronTableHash",
+  "outputs": [
+   {
+    "internalType": "bytes32",
+    "name": "",
+    "type": "bytes32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "operator",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "owner",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "permAdd",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "permInv",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "permMul",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "pricePerNeuron",
+  "outputs": [
+   {
+    "internalType": "uint256",
+    "name": "",
+    "type": "uint256"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "remaining",
+  "outputs": [
+   {
+    "internalType": "uint32",
+    "name": "",
+    "type": "uint32"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "op",
+    "type": "address"
+   }
+  ],
+  "name": "setOperator",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "uint256",
+    "name": "price",
+    "type": "uint256"
+   }
+  ],
+  "name": "setPrice",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "token_",
+    "type": "address"
+   },
+   {
+    "internalType": "uint256",
+    "name": "price",
+    "type": "uint256"
+   }
+  ],
+  "name": "setToken",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ },
+ {
+  "inputs": [],
+  "name": "token",
+  "outputs": [
+   {
+    "internalType": "address",
+    "name": "",
+    "type": "address"
+   }
+  ],
+  "stateMutability": "view",
+  "type": "function"
+ },
+ {
+  "inputs": [
+   {
+    "internalType": "address",
+    "name": "to",
+    "type": "address"
+   }
+  ],
+  "name": "transferOwnership",
+  "outputs": [],
+  "stateMutability": "nonpayable",
+  "type": "function"
+ }
+]

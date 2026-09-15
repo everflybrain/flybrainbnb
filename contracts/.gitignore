@@ -1,0 +1,3 @@
+# local-chain deployments are throwaway; commit deployments/56.json only
+deployments/31337.json
+deployments/1337.json
