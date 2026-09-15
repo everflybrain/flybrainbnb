@@ -221,9 +221,9 @@
     card.appendChild(dl);
     if (claim) {
       var own = el("div", "own");
-      var nm = el("div", "ut"); nm.style.fontWeight = "650"; nm.textContent = String(claim.name == null ? "" : claim.name);
+      var nm = el("div", "ut"); nm.style.fontWeight = "650"; nm.textContent = Burn.tidy(claim.name);
       own.append(el("div", "note", "owned by"), nm);
-      if (claim.note) { var nt = el("div", "ut note"); nt.textContent = String(claim.note); own.appendChild(nt); }
+      if (claim.note) { var nt = el("div", "ut note"); nt.textContent = Burn.tidy(claim.note); own.appendChild(nt); }
       var meta = el("div", "note");
       if (Burn.validAddress(claim.owner)) meta.appendChild(link(Burn.explorer + "/address/" + claim.owner, claim.owner.slice(0, 6) + "…" + claim.owner.slice(-4)));
       meta.appendChild(document.createTextNode(" · claim #" + claim.id));
@@ -275,8 +275,8 @@
 
   function ownerCard(c) {
     var li = el("li");
-    li.appendChild(el("div", "nm", c.name == null ? "" : c.name));
-    if (c.note) li.appendChild(el("div", "nt", c.note));
+    li.appendChild(el("div", "nm", Burn.tidy(c.name)));
+    if (c.note) li.appendChild(el("div", "nt", Burn.tidy(c.note)));
     var meta = el("div", "meta");
     var cnt = Number(c.count) || 0;
     meta.appendChild(el("span", null, intf.format(cnt) + (cnt === 1 ? " neuron" : " neurons")));
@@ -325,13 +325,20 @@
       row("Neuron table hash", hash(s.neuronTableHash), "pins neuron order, cell types and the sense map");
     }
     if (s.channelsHash) row("Senses map hash", hash(s.channelsHash));
+    // Only a pulse that was actually written counts: the registry's latest(), or a brain
+    // heartbeat that carries a transaction hash. The brain computes a pulse every epoch even
+    // when heartbeats are off; that one is never shown as on-chain.
     var hb = s.lastHeartbeat;
-    if (hb && hb.epoch !== undefined && hb.epoch !== null) {
-      var wrap = el("span", null, "epoch " + Number(hb.epoch) + " (" + fmtTime(Number(hb.epoch) * 600) + ") ");
-      if (HASH_RE.test(String(hb.tx || ""))) wrap.appendChild(link(Burn.explorer + "/tx/" + hb.tx, "transaction"));
+    var reg = x && x.latest && x.latest.epoch > 0 ? x.latest : null;
+    var sent = hb && hb.epoch !== undefined && hb.epoch !== null && HASH_RE.test(String(hb.tx || "")) ? hb : null;
+    if (sent && (!reg || Number(sent.epoch) >= reg.epoch)) {
+      var wrap = el("span", null, "epoch " + Number(sent.epoch) + " (" + fmtTime(Number(sent.epoch) * 600) + ") ");
+      wrap.appendChild(link(Burn.explorer + "/tx/" + sent.tx, "transaction"));
       row("Latest heartbeat", wrap);
-    } else if (x && x.latest && x.latest.epoch > 0) {
-      row("Latest heartbeat", "epoch " + x.latest.epoch + " (" + fmtTime(x.latest.time) + ")", "read from the registry");
+    } else if (reg) {
+      row("Latest heartbeat", "epoch " + reg.epoch + " (" + fmtTime(reg.time) + ")", "read from the registry");
+    } else if (S.status && !s.heartbeat_enabled) {
+      row("Latest heartbeat", "none written yet: heartbeats are off, so the pulse is only computed off-chain for now");
     } else {
       row("Latest heartbeat", "none yet");
     }

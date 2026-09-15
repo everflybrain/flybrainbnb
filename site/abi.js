@@ -15,7 +15,7 @@ window.FLY_ABI = {
     "function neuronTableHash() view returns (bytes32)",
     "function latest() view returns (uint64 epoch, bytes32 stateHash, bytes32 spikeRoot, bytes32 inputHash, uint64 time)",
     "function getClaim(uint256 id) view returns (tuple(address owner, uint32 start, uint32 count, uint64 time, uint256 burned, bytes name, bytes note))",
-    "function claim(uint32 count, string name, string note) returns (uint256 claimId)"
+    "function claim(uint32 count, string name, string note, uint256 maxBurn) returns (uint256 claimId)"
   ],
   // event Claimed(uint256 indexed claimId, address indexed owner, uint32 start, uint32 count, uint256 burned, string name, string note)
   claimedSig: "Claimed(uint256,address,uint32,uint32,uint256,string,string)",

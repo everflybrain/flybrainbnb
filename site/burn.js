@@ -22,6 +22,11 @@
     try { return dec.decode(ethers.getBytes(hex)); } catch (e) { return ""; }
   }
 
+  // Display only: keep at most 3 combining marks per base character so stacked marks ("zalgo")
+  // cannot tower over other owners' cards. The raw on-chain bytes are unchanged.
+  var MARKS_RE = /(\p{M}{3})\p{M}+/gu;
+  function tidy(t) { return t == null ? "" : String(t).replace(MARKS_RE, "$1"); }
+
   var R = { deployed: false, live: false };   // registry snapshot
 
   async function readRegistry() {
@@ -209,7 +214,7 @@
     }
     setMsg("Step 2 of 2: confirm the burn in your wallet.");
     var reg = new ethers.Contract(REG, ABI.registry, signer);
-    var tx = await reg.claim(count, name, note);
+    var tx = await reg.claim(count, name, note, cost);   // reverts if the price rose above what was shown
     setMsg("Burning… waiting for BNB Chain.");
     var rcpt = await tx.wait();
     if (!rcpt || rcpt.status !== 1) throw new Error("The transaction failed.");
@@ -227,7 +232,7 @@
     box.replaceChildren();
     var h = document.createElement("h3"); h.textContent = "Burned. Claim #" + res.id; box.appendChild(h);
     var p = document.createElement("p"); p.style.margin = "0";
-    var nm = document.createElement("b"); nm.className = "ut"; nm.style.unicodeBidi = "isolate"; nm.style.overflowWrap = "anywhere"; nm.textContent = res.name;
+    var nm = document.createElement("b"); nm.className = "ut"; nm.style.unicodeBidi = "isolate"; nm.style.overflowWrap = "anywhere"; nm.textContent = tidy(res.name);
     p.append(nm, document.createTextNode(" now owns " + res.count.toLocaleString("en-US") + " neuron" + (res.count === 1 ? "" : "s") + ", marked in pale blue on the map."));
     box.appendChild(p);
     var ids = document.createElement("div"); ids.className = "ids";
@@ -276,6 +281,6 @@
   window.Burn = {
     init: init, refresh: function () { return readRegistry().then(function (r) { render(); return r; }); },
     state: function () { return R; }, readClaims: readClaims, readExtras: readExtras, neuronIds: neuronIds,
-    fmtUnits: fmtUnits, explorer: EXPLORER, registry: REG, validAddress: function (a) { return ADDR_RE.test(String(a || "")); }
+    fmtUnits: fmtUnits, tidy: tidy, explorer: EXPLORER, registry: REG, validAddress: function (a) { return ADDR_RE.test(String(a || "")); }
   };
 })();
