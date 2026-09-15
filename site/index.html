@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>flybrainbnb</title>
+<meta name="description" content="Real fly wiring, simplified neurons. 165,122 neurons from the male fly connectome, simulated off-chain and driven by live BNB Smart Chain activity.">
+<meta name="theme-color" content="#07090d">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2307090d'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23ffb84d'/%3E%3Ccircle cx='8' cy='10' r='2' fill='%234f6478'/%3E%3Ccircle cx='24' cy='22' r='2' fill='%234f6478'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <a class="mark" href="#">flybrain<span>bnb</span></a>
+  <nav aria-label="Sections">
+    <a href="#owners">Owners</a><a href="#lore">Lore</a><a href="#proof">Proof</a><a href="#credits">Credits</a>
+  </nav>
+  <div id="pill" class="pill" role="status" aria-live="polite"><i></i><span>connecting</span></div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="stage" id="stage">
+      <canvas id="brain" aria-label="3D map of 165,122 fly neurons, lit by live activity"></canvas>
+      <div class="hook">
+        <h1>Real fly wiring. BNB Chain makes it fire.</h1>
+        <p>165,122 neurons from the male fly connectome, simulated off-chain. Burn tokens to write your name onto some of them, forever.</p>
+      </div>
+      <dl class="stats" id="stats" hidden>
+        <div><dt>active neurons</dt><dd id="sActive">-</dd></div>
+        <div><dt>mean rate</dt><dd id="sMean">-</dd></div>
+        <div><dt>block</dt><dd id="sBlock">-</dd></div>
+      </dl>
+      <div class="offline" id="offline" hidden>
+        <b>brain offline</b>
+        <span id="offlineWhy">Can't reach the brain server right now. Nothing shown here is made up, so the map stays dark until it's back.</span>
+      </div>
+      <div class="loading" id="loading">loading 165,122 neurons</div>
+      <div class="ctrl">
+        <button type="button" id="zoomIn" aria-label="Zoom in">+</button>
+        <button type="button" id="zoomOut" aria-label="Zoom out">&minus;</button>
+        <button type="button" id="spin" aria-pressed="true" aria-label="Toggle slow rotation">spin</button>
+      </div>
+      <p class="legend">
+        <span class="sw fire"></span>fired in the last window
+        <span class="sw mine"></span>highlighted claim
+        <span class="hint">drag to rotate, tap a neuron</span>
+      </p>
+      <article class="ncard" id="ncard" hidden aria-live="polite"></article>
+    </div>
+
+    <aside class="side">
+      <section class="panel burn" id="burn" aria-labelledby="burnTitle">
+        <h2 id="burnTitle">Burn your name into the brain</h2>
+
+        <div id="burnClosed">
+          <p class="closed">token isn't live yet</p>
+          <p class="sub" id="closedWhy">The coin hasn't launched. When it does, its address and the price per neuron are set once in the registry contract and this panel opens.</p>
+        </div>
+
+        <form id="burnForm" hidden novalidate>
+          <p class="price"><span id="price">-</span> per neuron <span class="dot">&middot;</span> <span id="left">-</span> neurons left</p>
+          <label class="field">
+            <span class="lab">Neurons <em id="countHint"></em></span>
+            <input id="count" type="number" inputmode="numeric" min="1" step="1" value="10" required>
+          </label>
+          <label class="field">
+            <span class="lab">Name <em id="nameCtr">0/32 bytes</em></span>
+            <input id="name" type="text" autocomplete="off" spellcheck="false" required>
+          </label>
+          <label class="field">
+            <span class="lab">Note, optional <em id="noteCtr">0/140 bytes</em></span>
+            <textarea id="note" rows="2" spellcheck="false"></textarea>
+          </label>
+          <p class="cost">You burn <b id="cost">-</b></p>
+          <button id="burnBtn" class="btn" type="submit">Connect wallet</button>
+          <p id="burnMsg" class="msg" role="status" aria-live="polite"></p>
+        </form>
+
+        <div id="burnDone" class="done" hidden aria-live="polite"></div>
+
+        <ul class="fine">
+          <li>Tokens go to <code>0x&hellip;dEaD</code>. Nothing is returned.</li>
+          <li>No NFT. Your wallet, name and note are written into the registry contract.</li>
+          <li>Public on BNB Chain forever. Nobody can edit or remove them, including us.</li>
+          <li>Neurons are dealt from a fixed shuffled order: you pick how many, not which.</li>
+        </ul>
+      </section>
+
+      <section class="panel senses" aria-labelledby="sensesTitle">
+        <h2 id="sensesTitle">Senses <span id="warm" class="badge" hidden>warming up</span></h2>
+        <p class="sub">Each sense fires only when its chain signal rises above its own last 72 minutes.</p>
+        <ul id="inputs" class="inputs"><li class="empty">brain offline</li></ul>
+      </section>
+    </aside>
+  </section>
+
+  <section id="owners" class="band">
+    <div class="wrap">
+      <div class="head">
+        <h2>Owners</h2>
+        <p class="sub" id="ownersSum">Names burned into the brain, newest first.</p>
+      </div>
+      <ol id="wall" class="wall"></ol>
+      <button type="button" id="more" class="btn ghost" hidden>Load more</button>
+    </div>
+  </section>
+
+  <section id="lore" class="band">
+    <div class="wrap">
+      <h2>What this is</h2>
+      <p class="lead">The wiring is real: the male fly central nervous system, 165,122 neurons and about 10 million connections, mapped cell by cell. The neurons are simplified: leaky integrate-and-fire units run off-chain on an ordinary server, 100 ms of brain time every 12 seconds, with one global synaptic scale. It is not an uploaded fly, and it is not conscious. BNB Chain is its senses, its heartbeat and its memory.</p>
+      <div class="three">
+        <div>
+          <h3>Senses</h3>
+          <p>Live BNB Smart Chain activity makes named sensory neurons fire. Transaction traffic reaches the visual relay cells just under the photoreceptors, gas price the heat-sensing cells, USDT and USDC flows the smell receptors, large transfers the wind and gravity sensors, PancakeSwap buys and sells the taste cells. Once the coin launches, its buys reach pharyngeal sensillum cells, its sells ppk23 pheromone-sensing cells, and every burn hits the cVA receptors.</p>
+        </div>
+        <div>
+          <h3>Heartbeat</h3>
+          <p>Every 10 minutes its pulse is written to BNB Chain: a hash of its state, which neurons fired and what it sensed.</p>
+        </div>
+        <div>
+          <h3>Memory</h3>
+          <p>The connectome's fingerprint is on-chain from launch, and every name burned into it stays forever. The registry has no upgrade, no withdraw and no delete.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="proof" class="band">
+    <div class="wrap">
+      <h2>On-chain proof</h2>
+      <dl class="proof" id="proofList"></dl>
+    </div>
+  </section>
+
+  <section id="credits" class="band">
+    <div class="wrap">
+      <h2>Credits</h2>
+      <ul class="credits">
+        <li>Wiring: Male CNS connectome v1.0 (MaleCNS), Janelia Research Campus FlyEM and Google. CC BY 4.0.</li>
+        <li>Neuron model after Shiu et al. 2024, <i>Nature</i>, "A Drosophila computational brain model reveals sensorimotor processing".</li>
+        <li>Rendering with three.js, wallet calls with ethers (both MIT).</li>
+        <li>Our code is MIT: <a id="repoLink" href="https://github.com/fruitflydev/flybrainbnb" rel="noopener">github.com/fruitflydev/flybrainbnb</a>.</li>
+        <li>Independent project. Not affiliated with or endorsed by Binance, BNB Chain or CZ.</li>
+      </ul>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">flybrainbnb &middot; real fly wiring, simplified neurons</footer>
+
+<script src="config.js"></script>
+<script src="abi.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" integrity="sha384-CI3ELBVUz9XQO+97x6nwMDPosPR5XvsxW2ua7N1Xeygeh1IxtgqtCkGfQY9WWdHu" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.17.0/ethers.umd.min.js" integrity="sha384-lApM4ELRuFNT7NgNqnXB2zFWgSDdhVvmnOHov2DPJz/2zuNpZImXBeklFr18ilvi" crossorigin="anonymous"></script>
+<script src="heatmap.js"></script>
+<script src="burn.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
