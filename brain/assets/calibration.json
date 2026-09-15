@@ -1,0 +1,387 @@
+{
+ "tau_syn": null,
+ "max_hz": 80.0,
+ "fit_max": true,
+ "bio_ms": 100.0,
+ "pick": 0.15,
+ "rows": [
+  {
+   "gain": 0.12,
+   "single_max_mean_hz": 3.878,
+   "all_driven_mean_hz": 6.834,
+   "after_stop_mean_hz_40_50ms": 0.0,
+   "min_downstream_active": 181,
+   "per_input": {
+    "traffic": {
+     "max_hz": 80.0,
+     "mean_hz": 1.112,
+     "downstream_active": 2579
+    },
+    "crowd": {
+     "max_hz": 80.0,
+     "mean_hz": 0.04,
+     "downstream_active": 181
+    },
+    "heat": {
+     "max_hz": 80.0,
+     "mean_hz": 2.557,
+     "downstream_active": 6934
+    },
+    "usdt": {
+     "max_hz": 20.0,
+     "mean_hz": 3.3,
+     "downstream_active": 7666
+    },
+    "usdc": {
+     "max_hz": 40.0,
+     "mean_hz": 3.878,
+     "downstream_active": 7901
+    },
+    "whale": {
+     "max_hz": 80.0,
+     "mean_hz": 0.554,
+     "downstream_active": 1808
+    },
+    "dex.buy": {
+     "max_hz": 80.0,
+     "mean_hz": 0.057,
+     "downstream_active": 219
+    },
+    "dex.sell": {
+     "max_hz": 80.0,
+     "mean_hz": 0.112,
+     "downstream_active": 186
+    },
+    "token.buy": {
+     "max_hz": 80.0,
+     "mean_hz": 0.156,
+     "downstream_active": 843
+    },
+    "token.sell": {
+     "max_hz": 80.0,
+     "mean_hz": 1.22,
+     "downstream_active": 3674
+    },
+    "token.burn": {
+     "max_hz": 60.0,
+     "mean_hz": 3.087,
+     "downstream_active": 7725
+    }
+   },
+   "jaccard": {
+    "traffic|crowd": 0.0,
+    "traffic|heat": 0.001,
+    "traffic|usdt": 0.001,
+    "traffic|usdc": 0.001,
+    "traffic|whale": 0.003,
+    "traffic|dex.buy": 0.0,
+    "traffic|dex.sell": 0.0,
+    "traffic|token.buy": 0.001,
+    "traffic|token.sell": 0.002,
+    "traffic|token.burn": 0.001,
+    "crowd|heat": 0.018,
+    "crowd|usdt": 0.015,
+    "crowd|usdc": 0.015,
+    "crowd|whale": 0.075,
+    "crowd|dex.buy": 0.047,
+    "crowd|dex.sell": 0.025,
+    "crowd|token.buy": 0.028,
+    "crowd|token.sell": 0.021,
+    "crowd|token.burn": 0.015,
+    "heat|usdt": 0.774,
+    "heat|usdc": 0.775,
+    "heat|whale": 0.098,
+    "heat|dex.buy": 0.01,
+    "heat|dex.sell": 0.004,
+    "heat|token.buy": 0.042,
+    "heat|token.sell": 0.111,
+    "heat|token.burn": 0.763,
+    "usdt|usdc": 0.821,
+    "usdt|whale": 0.102,
+    "usdt|dex.buy": 0.01,
+    "usdt|dex.sell": 0.004,
+    "usdt|token.buy": 0.04,
+    "usdt|token.sell": 0.118,
+    "usdt|token.burn": 0.788,
+    "usdc|whale": 0.094,
+    "usdc|dex.buy": 0.009,
+    "usdc|dex.sell": 0.004,
+    "usdc|token.buy": 0.039,
+    "usdc|token.sell": 0.114,
+    "usdc|token.burn": 0.771,
+    "whale|dex.buy": 0.023,
+    "whale|dex.sell": 0.013,
+    "whale|token.buy": 0.074,
+    "whale|token.sell": 0.165,
+    "whale|token.burn": 0.106,
+    "dex.buy|dex.sell": 0.116,
+    "dex.buy|token.buy": 0.11,
+    "dex.buy|token.sell": 0.014,
+    "dex.buy|token.burn": 0.008,
+    "dex.sell|token.buy": 0.069,
+    "dex.sell|token.sell": 0.007,
+    "dex.sell|token.burn": 0.004,
+    "token.buy|token.sell": 0.082,
+    "token.buy|token.burn": 0.04,
+    "token.sell|token.burn": 0.125
+   },
+   "jaccard_median": 0.025,
+   "wall_s": 14.0,
+   "ok_a": true,
+   "ok_b": true,
+   "ok_c": false
+  },
+  {
+   "gain": 0.15,
+   "single_max_mean_hz": 4.186,
+   "all_driven_mean_hz": 6.75,
+   "after_stop_mean_hz_40_50ms": 0.0,
+   "min_downstream_active": 1441,
+   "per_input": {
+    "traffic": {
+     "max_hz": 80.0,
+     "mean_hz": 1.295,
+     "downstream_active": 3801
+    },
+    "crowd": {
+     "max_hz": 80.0,
+     "mean_hz": 0.194,
+     "downstream_active": 1575
+    },
+    "heat": {
+     "max_hz": 60.0,
+     "mean_hz": 3.931,
+     "downstream_active": 9586
+    },
+    "usdt": {
+     "max_hz": 10.0,
+     "mean_hz": 4.186,
+     "downstream_active": 9569
+    },
+    "usdc": {
+     "max_hz": 10.0,
+     "mean_hz": 3.206,
+     "downstream_active": 8540
+    },
+    "whale": {
+     "max_hz": 80.0,
+     "mean_hz": 0.959,
+     "downstream_active": 3348
+    },
+    "dex.buy": {
+     "max_hz": 80.0,
+     "mean_hz": 0.235,
+     "downstream_active": 1441
+    },
+    "dex.sell": {
+     "max_hz": 80.0,
+     "mean_hz": 0.237,
+     "downstream_active": 1633
+    },
+    "token.buy": {
+     "max_hz": 80.0,
+     "mean_hz": 0.349,
+     "downstream_active": 1846
+    },
+    "token.sell": {
+     "max_hz": 80.0,
+     "mean_hz": 2.253,
+     "downstream_active": 5852
+    },
+    "token.burn": {
+     "max_hz": 40.0,
+     "mean_hz": 3.508,
+     "downstream_active": 9099
+    }
+   },
+   "jaccard": {
+    "traffic|crowd": 0.003,
+    "traffic|heat": 0.001,
+    "traffic|usdt": 0.001,
+    "traffic|usdc": 0.001,
+    "traffic|whale": 0.005,
+    "traffic|dex.buy": 0.003,
+    "traffic|dex.sell": 0.005,
+    "traffic|token.buy": 0.005,
+    "traffic|token.sell": 0.002,
+    "traffic|token.burn": 0.001,
+    "crowd|heat": 0.11,
+    "crowd|usdt": 0.116,
+    "crowd|usdc": 0.12,
+    "crowd|whale": 0.258,
+    "crowd|dex.buy": 0.232,
+    "crowd|dex.sell": 0.297,
+    "crowd|token.buy": 0.187,
+    "crowd|token.sell": 0.179,
+    "crowd|token.burn": 0.118,
+    "heat|usdt": 0.768,
+    "heat|usdc": 0.748,
+    "heat|whale": 0.137,
+    "heat|dex.buy": 0.079,
+    "heat|dex.sell": 0.09,
+    "heat|token.buy": 0.084,
+    "heat|token.sell": 0.16,
+    "heat|token.burn": 0.75,
+    "usdt|usdc": 0.779,
+    "usdt|whale": 0.14,
+    "usdt|dex.buy": 0.081,
+    "usdt|dex.sell": 0.084,
+    "usdt|token.buy": 0.083,
+    "usdt|token.sell": 0.172,
+    "usdt|token.burn": 0.78,
+    "usdc|whale": 0.134,
+    "usdc|dex.buy": 0.08,
+    "usdc|dex.sell": 0.085,
+    "usdc|token.buy": 0.082,
+    "usdc|token.sell": 0.151,
+    "usdc|token.burn": 0.785,
+    "whale|dex.buy": 0.207,
+    "whale|dex.sell": 0.267,
+    "whale|token.buy": 0.187,
+    "whale|token.sell": 0.28,
+    "whale|token.burn": 0.149,
+    "dex.buy|dex.sell": 0.349,
+    "dex.buy|token.buy": 0.37,
+    "dex.buy|token.sell": 0.143,
+    "dex.buy|token.burn": 0.089,
+    "dex.sell|token.buy": 0.31,
+    "dex.sell|token.sell": 0.193,
+    "dex.sell|token.burn": 0.092,
+    "token.buy|token.sell": 0.143,
+    "token.buy|token.burn": 0.087,
+    "token.sell|token.burn": 0.174
+   },
+   "jaccard_median": 0.137,
+   "wall_s": 20.7,
+   "ok_a": true,
+   "ok_b": true,
+   "ok_c": true
+  },
+  {
+   "gain": 0.18,
+   "single_max_mean_hz": 5.576,
+   "all_driven_mean_hz": 8.824,
+   "after_stop_mean_hz_40_50ms": 0.0,
+   "min_downstream_active": 4059,
+   "per_input": {
+    "traffic": {
+     "max_hz": 80.0,
+     "mean_hz": 1.474,
+     "downstream_active": 4649
+    },
+    "crowd": {
+     "max_hz": 80.0,
+     "mean_hz": 0.665,
+     "downstream_active": 4059
+    },
+    "heat": {
+     "max_hz": 20.0,
+     "mean_hz": 3.448,
+     "downstream_active": 10581
+    },
+    "usdt": {
+     "max_hz": 10.0,
+     "mean_hz": 5.576,
+     "downstream_active": 11525
+    },
+    "usdc": {
+     "max_hz": 10.0,
+     "mean_hz": 4.858,
+     "downstream_active": 11763
+    },
+    "whale": {
+     "max_hz": 80.0,
+     "mean_hz": 1.631,
+     "downstream_active": 6201
+    },
+    "dex.buy": {
+     "max_hz": 80.0,
+     "mean_hz": 0.621,
+     "downstream_active": 4138
+    },
+    "dex.sell": {
+     "max_hz": 80.0,
+     "mean_hz": 0.686,
+     "downstream_active": 4718
+    },
+    "token.buy": {
+     "max_hz": 80.0,
+     "mean_hz": 1.104,
+     "downstream_active": 7416
+    },
+    "token.sell": {
+     "max_hz": 80.0,
+     "mean_hz": 2.304,
+     "downstream_active": 6765
+    },
+    "token.burn": {
+     "max_hz": 30.0,
+     "mean_hz": 3.875,
+     "downstream_active": 12835
+    }
+   },
+   "jaccard": {
+    "traffic|crowd": 0.006,
+    "traffic|heat": 0.002,
+    "traffic|usdt": 0.002,
+    "traffic|usdc": 0.003,
+    "traffic|whale": 0.005,
+    "traffic|dex.buy": 0.006,
+    "traffic|dex.sell": 0.005,
+    "traffic|token.buy": 0.004,
+    "traffic|token.sell": 0.004,
+    "traffic|token.burn": 0.003,
+    "crowd|heat": 0.236,
+    "crowd|usdt": 0.228,
+    "crowd|usdc": 0.244,
+    "crowd|whale": 0.433,
+    "crowd|dex.buy": 0.333,
+    "crowd|dex.sell": 0.4,
+    "crowd|token.buy": 0.279,
+    "crowd|token.sell": 0.366,
+    "crowd|token.burn": 0.24,
+    "heat|usdt": 0.777,
+    "heat|usdc": 0.755,
+    "heat|whale": 0.231,
+    "heat|dex.buy": 0.249,
+    "heat|dex.sell": 0.275,
+    "heat|token.buy": 0.461,
+    "heat|token.sell": 0.209,
+    "heat|token.burn": 0.655,
+    "usdt|usdc": 0.772,
+    "usdt|whale": 0.229,
+    "usdt|dex.buy": 0.245,
+    "usdt|dex.sell": 0.258,
+    "usdt|token.buy": 0.45,
+    "usdt|token.sell": 0.217,
+    "usdt|token.burn": 0.647,
+    "usdc|whale": 0.267,
+    "usdc|dex.buy": 0.241,
+    "usdc|dex.sell": 0.261,
+    "usdc|token.buy": 0.448,
+    "usdc|token.sell": 0.234,
+    "usdc|token.burn": 0.69,
+    "whale|dex.buy": 0.262,
+    "whale|dex.sell": 0.336,
+    "whale|token.buy": 0.271,
+    "whale|token.sell": 0.396,
+    "whale|token.burn": 0.28,
+    "dex.buy|dex.sell": 0.502,
+    "dex.buy|token.buy": 0.43,
+    "dex.buy|token.sell": 0.277,
+    "dex.buy|token.burn": 0.24,
+    "dex.sell|token.buy": 0.422,
+    "dex.sell|token.sell": 0.355,
+    "dex.sell|token.burn": 0.274,
+    "token.buy|token.sell": 0.291,
+    "token.buy|token.burn": 0.434,
+    "token.sell|token.burn": 0.28
+   },
+   "jaccard_median": 0.271,
+   "wall_s": 23.6,
+   "ok_a": false,
+   "ok_b": true,
+   "ok_c": true
+  }
+ ]
+}

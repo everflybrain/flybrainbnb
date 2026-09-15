@@ -1,0 +1,8 @@
+{
+ "neuronCount": 165122,
+ "connectomeHash": "0x24d0df1a83cefeff694d4652102a83dc15eeaa247ab90f4913ba3c02825c907c",
+ "neuronTableHash": "0x0a9adc56ae0dbd5291fbb542d09a000ddbe312b4aed732cf29dd991ddbb84210",
+ "channelsHash": "0xc758ff6e043be150b1401c02e11e9d768664fb8fb725fc6d5830649d59ff076e",
+ "permMul": 101275,
+ "permAdd": 52805
+}

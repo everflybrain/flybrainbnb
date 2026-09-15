@@ -1,0 +1,13 @@
+# `railway up` skips .gitignore'd paths. data/ is gitignored in the repo (CC BY connectome
+# files stay out of git), but the image needs data/graph.npz, so re-include data/ here
+# and exclude what the image does not need. Fallback if a CLI version ignores this:
+# `railway up --no-gitignore` from brain/.
+!data/
+data/runtime/
+data/*.feather
+data/calib_*.json
+tests/
+__pycache__/
+.pytest_cache/
+.env
+.env.*

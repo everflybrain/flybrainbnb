@@ -1,0 +1,8 @@
+data/runtime/
+data/*.feather
+data/calib_*.json
+tests/
+__pycache__/
+.pytest_cache/
+.env
+.env.*
