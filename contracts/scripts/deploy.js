@@ -102,7 +102,10 @@ async function main() {
   }
   const dir = path.join(__dirname, "..", "deployments");
   fs.mkdirSync(dir, { recursive: true });
-  const file = path.join(dir, `${chainId}.json`);
+  // DEPLOY_TAG=test writes deployments/<chainId>-test.json instead, so a throwaway registry
+  // (for example one bound to a test coin) never overwrites the real one's record.
+  const tag = process.env.DEPLOY_TAG ? `-${process.env.DEPLOY_TAG.replace(/[^a-z0-9]/gi, "")}` : "";
+  const file = path.join(dir, `${chainId}${tag}.json`);
   fs.writeFileSync(file, JSON.stringify(out, null, 2) + "\n");
   console.log(`FlyBrainRegistry ${address}  gas ${rc.gasUsed}  -> ${path.relative(process.cwd(), file)}`);
 }

@@ -18,7 +18,8 @@ async function main() {
   const local = LOCAL_CHAINS.has(chainId);
   const env = readEnv();
 
-  const depFile = path.join(__dirname, "..", "deployments", `${chainId}.json`);
+  const tag = process.env.DEPLOY_TAG ? `-${process.env.DEPLOY_TAG.replace(/[^a-z0-9]/gi, "")}` : "";
+  const depFile = path.join(__dirname, "..", "deployments", `${chainId}${tag}.json`);
   const registry = process.env.REGISTRY || (fs.existsSync(depFile) && JSON.parse(fs.readFileSync(depFile, "utf8")).address);
   if (!registry || !ethers.isAddress(registry)) throw new Error("no REGISTRY and no deployments file");
 
