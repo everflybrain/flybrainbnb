@@ -24,9 +24,12 @@ them.
 ## Status
 
 - Brain service: live on Railway (https://brain-production-2ead.up.railway.app/status),
-  reading BNB Smart Chain mainnet. Heartbeats off.
+  reading BNB Smart Chain mainnet. Heartbeats on, every 10 minutes from the operator wallet.
 - Website: live on Vercel (https://flybrainbnb.vercel.app).
-- Registry contract: written and tested locally, **not deployed**.
+- Registry contract: **deployed** on BNB Smart Chain at
+  [`0xe11a73Cea3feC43b300128B92b5E9efA8577afE6`](https://bscscan.com/address/0xe11a73Cea3feC43b300128B92b5E9efA8577afE6)
+  (tx [`0x820a970b…3b3001`](https://bscscan.com/tx/0x820a970b70556acf5669f1cae923b832fdbec21de52cb366ce72f7efb03b3001), block 121994444).
+  Deployment record: `contracts/deployments/56.json`.
 - Token: **not launched.** The contract address (CA) is set later, once, with
   `scripts/set-token.js`. Until then the site shows the token as not live.
 
