@@ -23,8 +23,9 @@ them.
 
 ## Status
 
-- Brain service: live on Railway, reading BNB Smart Chain mainnet. Heartbeats off.
-- Website: live on Vercel.
+- Brain service: live on Railway (https://brain-production-2ead.up.railway.app/status),
+  reading BNB Smart Chain mainnet. Heartbeats off.
+- Website: live on Vercel (https://flybrainbnb.vercel.app).
 - Registry contract: written and tested locally, **not deployed**.
 - Token: **not launched.** The contract address (CA) is set later, once, with
   `scripts/set-token.js`. Until then the site shows the token as not live.
