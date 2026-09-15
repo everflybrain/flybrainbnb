@@ -24,12 +24,10 @@ them.
 ## Status
 
 - Brain service: live on Railway (https://brain-production-2ead.up.railway.app/status),
-  reading BNB Smart Chain mainnet. Heartbeats on, every 10 minutes from the operator wallet.
+  reading BNB Smart Chain mainnet when deployed. Heartbeats every 10 minutes from the operator wallet.
 - Website: live at https://everfly.xyz (Vercel).
-- Registry contract: **deployed** on BNB Smart Chain at
-  [`0xe11a73Cea3feC43b300128B92b5E9efA8577afE6`](https://bscscan.com/address/0xe11a73Cea3feC43b300128B92b5E9efA8577afE6)
-  (tx [`0x820a970b…3b3001`](https://bscscan.com/tx/0x820a970b70556acf5669f1cae923b832fdbec21de52cb366ce72f7efb03b3001), block 121994444).
-  Deployment record: `contracts/deployments/56.json`.
+- Registry contract: being redeployed from a fresh wallet; the new address and deployment
+  record (`contracts/deployments/56.json`) will be added here when it is live.
 - Token: **not launched.** The contract address (CA) is set later, once, with
   `scripts/set-token.js`. Until then the site shows the token as not live.
 
